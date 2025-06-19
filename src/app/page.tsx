@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Sparkles, Zap, Upload, FileText, Loader2 } from "lucide-react";
+import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3 } from "lucide-react";
 import { useState, useRef, DragEvent, ChangeEvent } from "react";
 
 interface AnalysisResult {
@@ -121,7 +121,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* Header Moderno con Gradiente */}
       <header className="bg-gradient-to-r from-[#141414] via-[#1a1a1a] to-[#141414] px-6 py-6 shadow-lg">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center space-x-4 group">
             <div className="relative">
               <Brain className="h-8 w-8 text-[#cdff07] group-hover:scale-110 transition-transform duration-300" />
@@ -137,72 +137,85 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Área Principal con Centrado Elegante */}
-      <main className="max-w-4xl mx-auto px-6 py-16 flex items-center justify-center min-h-[calc(100vh-120px)]">
-        <div className="w-full max-w-2xl space-y-12">
-          
-          {/* Título Principal con Jerarquía Visual */}
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <Sparkles className="h-8 w-8 text-[#1a4fed] animate-pulse" />
-              <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#141414] via-[#1a4fed] to-[#141414] bg-clip-text text-transparent">
-                Analiza tu Prompt Creativo
-              </h2>
-              <Sparkles className="h-8 w-8 text-[#1a4fed] animate-pulse" />
-            </div>
-            <p className="text-lg text-[#8f8989] font-medium max-w-lg mx-auto leading-relaxed">
-              Descubre el potencial creativo oculto en tus ideas
-            </p>
+      {/* Área Principal con Layout de Dos Columnas */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        
+        {/* Título Principal */}
+        <div className="text-center space-y-4 mb-12">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <Sparkles className="h-8 w-8 text-[#1a4fed] animate-pulse" />
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#141414] via-[#1a4fed] to-[#141414] bg-clip-text text-transparent">
+              Analiza tu Prompt Creativo
+            </h2>
+            <Sparkles className="h-8 w-8 text-[#1a4fed] animate-pulse" />
           </div>
+          <p className="text-lg text-[#8f8989] font-medium max-w-lg mx-auto leading-relaxed">
+            Descubre el potencial creativo oculto en tus ideas
+          </p>
+        </div>
 
-          {/* Área de Prompt Interactiva */}
-          <div className="group">
-            <div
-              className={`relative bg-white/70 backdrop-blur-xl border-2 ${getStatusColor()} rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 ${
-                isDragActive ? 'border-[#cdff07] bg-[#cdff07]/5 scale-[1.02]' : ''
-              }`}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              {/* Gradiente de fondo sutil */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#cdff07]/5 via-transparent to-[#1a4fed]/5 rounded-2xl"></div>
-              
-              {/* Contenido del área de prompt */}
-              <div className="relative z-10 p-8">
+        {/* Layout de Dos Columnas */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[600px]">
+          
+          {/* COLUMNA IZQUIERDA - Área de Prompt */}
+          <div className="space-y-6">
+            <div className="text-center lg:text-left">
+              <h3 className="text-2xl font-bold text-[#141414] mb-2">
+                Escribe tu Prompt
+              </h3>
+              <p className="text-[#8f8989]">
+                Comparte tu idea creativa y descubre tu perfil
+              </p>
+            </div>
+
+            {/* Área de Prompt Interactiva */}
+            <div className="group">
+              <div
+                className={`relative bg-white/70 backdrop-blur-xl border-2 ${getStatusColor()} rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 ${
+                  isDragActive ? 'border-[#cdff07] bg-[#cdff07]/5 scale-[1.02]' : ''
+                }`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                {/* Gradiente de fondo sutil */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#cdff07]/5 via-transparent to-[#1a4fed]/5 rounded-2xl"></div>
                 
-                {/* Header del área de prompt */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center">
-                      {getStatusIcon()}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-[#141414]">Tu Prompt Creativo</h3>
-                      <p className="text-sm text-[#8f8989]">{getStatusText()}</p>
-                    </div>
-                  </div>
+                {/* Contenido del área de prompt */}
+                <div className="relative z-10 p-6">
                   
-                  {/* Contador de caracteres */}
-                  <div className="text-right">
-                    <div className={`text-sm font-semibold ${
-                      isValidPrompt ? 'text-[#cdff07]' : isEmpty ? 'text-[#8f8989]' : 'text-[#1a4fed]'
-                    }`}>
-                      {prompt.length}
+                  {/* Header del área de prompt */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center">
+                        {getStatusIcon()}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-[#141414]">Tu Prompt Creativo</h4>
+                        <p className="text-sm text-[#8f8989]">{getStatusText()}</p>
+                      </div>
                     </div>
-                    <div className="text-xs text-[#8f8989]">caracteres</div>
+                    
+                    {/* Contador de caracteres */}
+                    <div className="text-right">
+                      <div className={`text-sm font-semibold ${
+                        isValidPrompt ? 'text-[#cdff07]' : isEmpty ? 'text-[#8f8989]' : 'text-[#1a4fed]'
+                      }`}>
+                        {prompt.length}
+                      </div>
+                      <div className="text-xs text-[#8f8989]">caracteres</div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Textarea */}
-                <div className="relative">
-                  <textarea
-                    ref={textareaRef}
-                    value={prompt}
-                    onChange={handleTextChange}
-                    disabled={isAnalyzing}
-                    placeholder="Escribe o pega tu prompt creativo aquí... 
+                  {/* Textarea */}
+                  <div className="relative">
+                    <textarea
+                      ref={textareaRef}
+                      value={prompt}
+                      onChange={handleTextChange}
+                      disabled={isAnalyzing}
+                      placeholder="Escribe o pega tu prompt creativo aquí... 
 
 Ejemplos:
 • Describe una idea de producto innovador
@@ -210,108 +223,127 @@ Ejemplos:
 • Explica un desafío que quieres resolver
 
 También puedes arrastrar un archivo .txt aquí ↓"
-                    className={`w-full h-48 p-6 bg-transparent border-0 resize-none focus:outline-none text-[#141414] placeholder-[#8f8989]/70 text-base leading-relaxed ${
-                      isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    style={{ minHeight: '200px' }}
-                  />
-                  
-                  {/* Overlay de drag & drop */}
-                  {isDragActive && (
-                    <div className="absolute inset-0 bg-[#cdff07]/10 border-2 border-dashed border-[#cdff07] rounded-lg flex items-center justify-center">
-                      <div className="text-center space-y-2">
-                        <Upload className="h-8 w-8 text-[#cdff07] mx-auto animate-bounce" />
-                        <p className="text-[#141414] font-semibold">Suelta tu archivo aquí</p>
-                        <p className="text-sm text-[#8f8989]">Solo archivos .txt</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Indicador de progreso */}
-                <div className="mt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-[#8f8989]">Progreso</span>
-                    <span className="text-xs text-[#8f8989]">{Math.min(100, Math.round((prompt.length / minChars) * 100))}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        isValidPrompt ? 'bg-gradient-to-r from-[#cdff07] to-[#b8e600]' : 'bg-gradient-to-r from-[#1a4fed] to-[#4169ff]'
+                      className={`w-full h-64 p-4 bg-transparent border-0 resize-none focus:outline-none text-[#141414] placeholder-[#8f8989]/70 text-base leading-relaxed ${
+                        isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
-                      style={{ width: `${Math.min(100, (prompt.length / minChars) * 100)}%` }}
-                    ></div>
+                    />
+                    
+                    {/* Overlay de drag & drop */}
+                    {isDragActive && (
+                      <div className="absolute inset-0 bg-[#cdff07]/10 border-2 border-dashed border-[#cdff07] rounded-lg flex items-center justify-center">
+                        <div className="text-center space-y-2">
+                          <Upload className="h-8 w-8 text-[#cdff07] mx-auto animate-bounce" />
+                          <p className="text-[#141414] font-semibold">Suelta tu archivo aquí</p>
+                          <p className="text-sm text-[#8f8989]">Solo archivos .txt</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Indicador de progreso */}
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-[#8f8989]">Progreso</span>
+                      <span className="text-xs text-[#8f8989]">{Math.min(100, Math.round((prompt.length / minChars) * 100))}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          isValidPrompt ? 'bg-gradient-to-r from-[#cdff07] to-[#b8e600]' : 'bg-gradient-to-r from-[#1a4fed] to-[#4169ff]'
+                        }`}
+                        style={{ width: `${Math.min(100, (prompt.length / minChars) * 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Brillo sutil en hover */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                {/* Brillo sutil en hover */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </div>
+            </div>
+
+            {/* Botón Analizar */}
+            <div className="space-y-4">
+              <button 
+                onClick={handleAnalyze}
+                disabled={!isValidPrompt || isAnalyzing}
+                className={`w-full relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-xl shadow-lg overflow-hidden group transition-all duration-300 ${
+                  isValidPrompt && !isAnalyzing
+                    ? 'bg-gradient-to-r from-[#cdff07] to-[#b8e600] text-[#141414] hover:shadow-xl hover:-translate-y-1 cursor-pointer'
+                    : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 cursor-not-allowed'
+                }`}
+              >
+                {/* Contenido del botón */}
+                <div className="relative flex items-center space-x-3">
+                  {isAnalyzing ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Brain className="h-5 w-5" />
+                  )}
+                  <span>
+                    {isAnalyzing 
+                      ? 'Analizando...' 
+                      : isValidPrompt 
+                        ? 'Analizar Prompt' 
+                        : 'Analizar'
+                    }
+                  </span>
+                </div>
+                
+                {/* Efecto de brillo para estado activo */}
+                {isValidPrompt && !isAnalyzing && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                )}
+              </button>
+              
+              <p className="text-sm text-[#8f8989] font-medium text-center">
+                {error ? (
+                  <span className="text-red-500">{error}</span>
+                ) : isAnalyzing ? (
+                  'Procesando con IA...'
+                ) : isValidPrompt ? (
+                  '¡Tu prompt está listo para ser analizado!'
+                ) : (
+                  'Escribe al menos 50 caracteres para continuar'
+                )}
+              </p>
             </div>
           </div>
 
-          {/* Botón Moderno con Estados */}
-          <div className="text-center space-y-4">
-            <button 
-              onClick={handleAnalyze}
-              disabled={!isValidPrompt || isAnalyzing}
-              className={`relative inline-flex items-center justify-center px-12 py-4 text-lg font-semibold rounded-xl shadow-lg overflow-hidden group transition-all duration-300 ${
-                isValidPrompt && !isAnalyzing
-                  ? 'bg-gradient-to-r from-[#cdff07] to-[#b8e600] text-[#141414] hover:shadow-xl hover:-translate-y-1 cursor-pointer'
-                  : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 cursor-not-allowed'
-              }`}
-            >
-              {/* Contenido del botón */}
-              <div className="relative flex items-center space-x-3">
-                {isAnalyzing ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Brain className="h-5 w-5" />
-                )}
-                <span>
-                  {isAnalyzing 
-                    ? 'Analizando...' 
-                    : isValidPrompt 
-                      ? 'Analizar Prompt' 
-                      : 'Analizar'
-                  }
-                </span>
-              </div>
-              
-              {/* Efecto de brillo para estado activo */}
-              {isValidPrompt && !isAnalyzing && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-              )}
-            </button>
-            
-            <p className="text-sm text-[#8f8989] font-medium">
-              {error ? (
-                <span className="text-red-500">{error}</span>
-              ) : isAnalyzing ? (
-                'Procesando con IA...'
-              ) : isValidPrompt ? (
-                '¡Tu prompt está listo para ser analizado!'
-              ) : (
-                'Escribe al menos 50 caracteres para continuar'
-              )}
-            </p>
+          {/* COLUMNA DERECHA - Área de Resultados */}
+          <div className="space-y-6">
+            <div className="text-center lg:text-left">
+              <h3 className="text-2xl font-bold text-[#141414] mb-2">
+                Tu Perfil Creativo
+              </h3>
+              <p className="text-[#8f8989]">
+                Los resultados del análisis aparecerán aquí
+              </p>
+            </div>
 
-            {/* Mostrar resultado del análisis */}
-            {analysisResult && (
-              <div className="mt-8 space-y-6">
-                <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50">
-                  <h3 className="text-2xl font-bold text-[#141414] mb-6 text-center">
-                    Tu Perfil Creativo
-                  </h3>
+            {/* Card de Resultados */}
+            <div className="h-full min-h-[500px]">
+              {analysisResult ? (
+                /* Mostrar Resultados */
+                <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50 h-full">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center">
+                      <BarChart3 className="h-6 w-6 text-[#1a4fed]" />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-[#141414]">Análisis Completado</h4>
+                      <p className="text-sm text-[#8f8989]">Tus dimensiones creativas principales</p>
+                    </div>
+                  </div>
                   
                   {/* Top Dimensiones */}
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {analysisResult.topDimensions.map((dimension, index) => (
-                      <div key={dimension.name} className="space-y-2">
+                      <div key={dimension.name} className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-[#141414] text-lg">
+                          <h5 className="font-semibold text-[#141414] text-lg">
                             {dimension.label}
-                          </h4>
+                          </h5>
                           <span className="text-[#1a4fed] font-bold text-xl">
                             {dimension.percentage}%
                           </span>
@@ -322,15 +354,43 @@ También puedes arrastrar un archivo .txt aquí ↓"
                             style={{ width: `${dimension.percentage}%` }}
                           ></div>
                         </div>
-                        <p className="text-sm text-[#8f8989] italic">
+                        <p className="text-sm text-[#8f8989] italic leading-relaxed">
                           {dimension.reasoning}
                         </p>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                /* Placeholder Estado Inicial */
+                <div className="bg-white/70 backdrop-blur-xl border-2 border-gray-200/50 rounded-2xl shadow-xl h-full flex items-center justify-center">
+                  <div className="text-center space-y-6 p-8">
+                    <div className="relative">
+                      <div className="h-20 w-20 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center mx-auto mb-4">
+                        <BarChart3 className="h-10 w-10 text-[#8f8989]" />
+                      </div>
+                      <div className="absolute -inset-2 bg-gradient-to-r from-[#cdff07]/10 to-[#1a4fed]/10 rounded-full blur-lg"></div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h4 className="text-xl font-semibold text-[#141414]">
+                        Tu Perfil Creativo aparecerá aquí
+                      </h4>
+                      <p className="text-[#8f8989] leading-relaxed max-w-sm mx-auto">
+                        Analiza tu prompt para descubrir tus dimensiones creativas y conocer tu perfil único
+                      </p>
+                    </div>
+
+                    {/* Elementos decorativos */}
+                    <div className="flex items-center justify-center space-x-2 opacity-50">
+                      <div className="h-2 w-2 rounded-full bg-[#cdff07]"></div>
+                      <div className="h-2 w-8 rounded-full bg-gradient-to-r from-[#cdff07] to-[#1a4fed]"></div>
+                      <div className="h-2 w-2 rounded-full bg-[#1a4fed]"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
