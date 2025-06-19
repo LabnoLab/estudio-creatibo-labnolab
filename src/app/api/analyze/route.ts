@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 // Definir las dimensiones esperadas para validación
 const EXPECTED_DIMENSIONS = [
   'arquitecto_sistemas',
@@ -27,6 +23,13 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 [ANALYZE API] Iniciando análisis...');
     console.log('📝 [ANALYZE API] Prompt length:', prompt?.length);
+    
+    // Debug de variables de entorno
+    console.log('🔍 [ANALYZE API] Debugging API Key...');
+    console.log('📊 [ANALYZE API] NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔑 [ANALYZE API] API Key exists:', !!process.env.OPENAI_API_KEY);
+    console.log('🔑 [ANALYZE API] API Key length:', process.env.OPENAI_API_KEY?.length);
+    console.log('🔑 [ANALYZE API] API Key starts with:', process.env.OPENAI_API_KEY?.substring(0, 20) + '...');
 
     if (!prompt || prompt.length < 50) {
       console.log('❌ [ANALYZE API] Prompt muy corto:', prompt?.length);
@@ -36,13 +39,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.log('❌ [ANALYZE API] API key no configurada');
+    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'tu-api-key-aqui') {
+      console.log('❌ [ANALYZE API] API key no configurada o es placeholder');
+      console.log('🔍 [ANALYZE API] Current value:', process.env.OPENAI_API_KEY);
       return NextResponse.json(
         { error: 'API key de OpenAI no configurada. Revisa tu archivo .env.local' },
         { status: 500 }
       );
     }
+
+    // Inicializar OpenAI dentro del handler
+    console.log('🤖 [ANALYZE API] Inicializando cliente OpenAI...');
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const systemPrompt = `Eres un experto analista de perfiles creativos de LabnoLab. 
 
