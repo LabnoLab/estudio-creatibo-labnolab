@@ -1,11 +1,24 @@
 "use client";
 
-import { Brain, Sparkles, Zap, Upload, FileText } from "lucide-react";
+import { Brain, Sparkles, Zap, Upload, FileText, Loader2 } from "lucide-react";
 import { useState, useRef, DragEvent, ChangeEvent } from "react";
+
+interface AnalysisResult {
+  dimensions: Record<string, number>;
+  topDimensions: Array<{
+    name: string;
+    label: string;
+    percentage: number;
+    reasoning: string;
+  }>;
+}
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const minChars = 50;
@@ -50,6 +63,40 @@ export default function Home() {
 
   const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
+    // Limpiar errores y resultados anteriores cuando se edita
+    if (error) setError(null);
+    if (analysisResult) setAnalysisResult(null);
+  };
+
+  // Función para analizar el prompt
+  const handleAnalyze = async () => {
+    if (!isValidPrompt || isAnalyzing) return;
+
+    setIsAnalyzing(true);
+    setError(null);
+    setAnalysisResult(null);
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en el análisis');
+      }
+
+      setAnalysisResult(data.analysis);
+    } catch (err: any) {
+      setError(err.message || 'Error conectando con el servidor');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getStatusColor = () => {
@@ -154,6 +201,7 @@ export default function Home() {
                     ref={textareaRef}
                     value={prompt}
                     onChange={handleTextChange}
+                    disabled={isAnalyzing}
                     placeholder="Escribe o pega tu prompt creativo aquí... 
 
 Ejemplos:
@@ -162,7 +210,9 @@ Ejemplos:
 • Explica un desafío que quieres resolver
 
 También puedes arrastrar un archivo .txt aquí ↓"
-                    className="w-full h-48 p-6 bg-transparent border-0 resize-none focus:outline-none text-[#141414] placeholder-[#8f8989]/70 text-base leading-relaxed"
+                    className={`w-full h-48 p-6 bg-transparent border-0 resize-none focus:outline-none text-[#141414] placeholder-[#8f8989]/70 text-base leading-relaxed ${
+                      isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     style={{ minHeight: '200px' }}
                   />
                   
@@ -203,28 +253,84 @@ También puedes arrastrar un archivo .txt aquí ↓"
           {/* Botón Moderno con Estados */}
           <div className="text-center space-y-4">
             <button 
-              disabled={!isValidPrompt}
+              onClick={handleAnalyze}
+              disabled={!isValidPrompt || isAnalyzing}
               className={`relative inline-flex items-center justify-center px-12 py-4 text-lg font-semibold rounded-xl shadow-lg overflow-hidden group transition-all duration-300 ${
-                isValidPrompt 
+                isValidPrompt && !isAnalyzing
                   ? 'bg-gradient-to-r from-[#cdff07] to-[#b8e600] text-[#141414] hover:shadow-xl hover:-translate-y-1 cursor-pointer'
                   : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 cursor-not-allowed'
               }`}
             >
               {/* Contenido del botón */}
               <div className="relative flex items-center space-x-3">
-                <Brain className="h-5 w-5" />
-                <span>{isValidPrompt ? 'Analizar Prompt' : 'Analizar'}</span>
+                {isAnalyzing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Brain className="h-5 w-5" />
+                )}
+                <span>
+                  {isAnalyzing 
+                    ? 'Analizando...' 
+                    : isValidPrompt 
+                      ? 'Analizar Prompt' 
+                      : 'Analizar'
+                  }
+                </span>
               </div>
               
               {/* Efecto de brillo para estado activo */}
-              {isValidPrompt && (
+              {isValidPrompt && !isAnalyzing && (
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
               )}
             </button>
             
             <p className="text-sm text-[#8f8989] font-medium">
-              {isValidPrompt ? '¡Tu prompt está listo para ser analizado!' : 'Escribe al menos 50 caracteres para continuar'}
+              {error ? (
+                <span className="text-red-500">{error}</span>
+              ) : isAnalyzing ? (
+                'Procesando con IA...'
+              ) : isValidPrompt ? (
+                '¡Tu prompt está listo para ser analizado!'
+              ) : (
+                'Escribe al menos 50 caracteres para continuar'
+              )}
             </p>
+
+            {/* Mostrar resultado del análisis */}
+            {analysisResult && (
+              <div className="mt-8 space-y-6">
+                <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50">
+                  <h3 className="text-2xl font-bold text-[#141414] mb-6 text-center">
+                    Tu Perfil Creativo
+                  </h3>
+                  
+                  {/* Top Dimensiones */}
+                  <div className="space-y-4">
+                    {analysisResult.topDimensions.map((dimension, index) => (
+                      <div key={dimension.name} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-[#141414] text-lg">
+                            {dimension.label}
+                          </h4>
+                          <span className="text-[#1a4fed] font-bold text-xl">
+                            {dimension.percentage}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div 
+                            className="h-3 rounded-full bg-gradient-to-r from-[#1a4fed] to-[#cdff07] transition-all duration-1000 ease-out"
+                            style={{ width: `${dimension.percentage}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-sm text-[#8f8989] italic">
+                          {dimension.reasoning}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
