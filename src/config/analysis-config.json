@@ -1,0 +1,179 @@
+{
+  "_comments": {
+    "description": "Configuración completa del Creative Intelligence Profiler",
+    "instructions": "Edita este archivo para modificar dimensiones, prompts o configuraciones sin tocar código",
+    "lastUpdated": "2025-01-20"
+  },
+  
+  "settings": {
+    "_comment": "Configuraciones generales del modelo de IA y análisis",
+    "openai": {
+      "model": "gpt-4o-mini",
+      "temperature": 0.1,
+      "maxTokens": 1200
+    },
+    "analysis": {
+      "minPromptLength": 50,
+      "maxTopDimensions": 4,
+      "responseLanguage": "spanish"
+    }
+  },
+
+  "systemPrompt": {
+    "_comment": "Prompt del sistema que se envía a OpenAI. Incluye todas las instrucciones de análisis",
+    "content": "Eres un experto analista de perfiles creativos de LabnoLab. Tu tarea es analizar prompts creativos y determinar qué dimensiones creativas están más presentes.\n\nLas 12 dimensiones creativas de LabnoLab son:\n\n1. **Arquitecto/a de Sistemas**: Diseña estructuras complejas, piensa en escalabilidad, conecta componentes de manera eficiente.\n2. **Obsesión UX**: Se enfoca intensamente en la experiencia del usuario, optimiza interfaces y flujos.\n3. **Hacker de Procesos**: Optimiza workflows, automatiza tareas, encuentra formas más eficientes de hacer las cosas.\n4. **Visión Panorámica**: Ve el big picture, conecta puntos distantes, piensa estratégicamente.\n5. **Data Lover**: Apasionado por los datos, métricas, análisis cuantitativos y insights basados en números.\n6. **Detector de Futuros**: Identifica tendencias emergentes, anticipa cambios, ve oportunidades antes que otros.\n7. **Diseñador/a de Experiencias**: Crea experiencias memorables, se enfoca en el journey completo del usuario.\n8. **Constructor/a de Comunidades**: Construye y nutre comunidades, facilita conexiones entre personas.\n9. **Transformador/a Cultural**: Impulsa cambios culturales, desafía status quo, crea nuevas narrativas.\n10. **Storyteller Natural**: Comunica a través de historias, conecta emocionalmente, crea narrativas poderosas.\n11. **Experimentador/a Serial**: Prueba constantemente nuevas ideas, itera rápido, aprende haciendo.\n12. **Conectador/a de Mundos**: Une diferentes disciplinas, industrias o perspectivas de manera innovadora.\n\nAnaliza el prompt del usuario y determina:\n1. Un porcentaje (0-100%) para cada una de las 12 dimensiones\n2. Las 3-4 dimensiones principales (con mayor porcentaje)\n3. Una explicación (reasoning) de por qué cada dimensión principal es relevante\n\nResponde ÚNICAMENTE en formato JSON válido, sin markdown ni texto adicional."
+  },
+
+  "dimensions": [
+    {
+      "id": "arquitecto_sistemas",
+      "name": "Arquitecto de Sistemas", 
+      "description": "Diseña estructuras complejas, piensa en escalabilidad, conecta componentes de manera eficiente",
+      "category": "technical",
+      "keywords": ["arquitectura", "sistemas", "escalabilidad", "estructura", "componentes", "diseño técnico"]
+    },
+    {
+      "id": "obsesion_ux",
+      "name": "Obsesión UX",
+      "description": "Se enfoca intensamente en la experiencia del usuario, optimiza interfaces y flujos",
+      "category": "user-focused",
+      "keywords": ["UX", "usuario", "interfaz", "experiencia", "usabilidad", "flujos"]
+    },
+    {
+      "id": "hacker_procesos", 
+      "name": "Hacker de Procesos",
+      "description": "Optimiza workflows, automatiza tareas, encuentra formas más eficientes de hacer las cosas",
+      "category": "optimization",
+      "keywords": ["procesos", "workflow", "automatización", "eficiencia", "optimización"]
+    },
+    {
+      "id": "vision_panoramica",
+      "name": "Visión Panorámica", 
+      "description": "Ve el big picture, conecta puntos distantes, piensa estratégicamente",
+      "category": "strategic",
+      "keywords": ["estrategia", "visión", "big picture", "conexiones", "panorámica"]
+    },
+    {
+      "id": "data_lover",
+      "name": "Data Lover",
+      "description": "Apasionado por los datos, métricas, análisis cuantitativos y insights basados en números", 
+      "category": "analytical",
+      "keywords": ["datos", "métricas", "análisis", "números", "insights", "cuantitativo"]
+    },
+    {
+      "id": "detector_futuros",
+      "name": "Detector de Futuros",
+      "description": "Identifica tendencias emergentes, anticipa cambios, ve oportunidades antes que otros",
+      "category": "visionary", 
+      "keywords": ["futuro", "tendencias", "oportunidades", "anticipación", "emergente"]
+    },
+    {
+      "id": "diseñador_experiencias",
+      "name": "Diseñador de Experiencias",
+      "description": "Crea experiencias memorables, se enfoca en el journey completo del usuario",
+      "category": "creative",
+      "keywords": ["experiencias", "journey", "memorable", "diseño", "vivencial"]
+    },
+    {
+      "id": "constructor_comunidades", 
+      "name": "Constructor de Comunidades",
+      "description": "Construye y nutre comunidades, facilita conexiones entre personas",
+      "category": "social",
+      "keywords": ["comunidad", "conexiones", "personas", "social", "networking"]
+    },
+    {
+      "id": "transformador_cultural",
+      "name": "Transformador Cultural",
+      "description": "Impulsa cambios culturales, desafía status quo, crea nuevas narrativas", 
+      "category": "change-maker",
+      "keywords": ["cultura", "cambio", "transformación", "narrativas", "status quo"]
+    },
+    {
+      "id": "storyteller_natural",
+      "name": "Storyteller Natural", 
+      "description": "Comunica a través de historias, conecta emocionalmente, crea narrativas poderosas",
+      "category": "communication",
+      "keywords": ["historias", "narrativas", "comunicación", "emocional", "storytelling"]
+    },
+    {
+      "id": "experimentador_serial",
+      "name": "Experimentador Serial",
+      "description": "Prueba constantemente nuevas ideas, itera rápido, aprende haciendo",
+      "category": "innovation", 
+      "keywords": ["experimentos", "iteración", "ideas", "pruebas", "aprendizaje"]
+    },
+    {
+      "id": "conectador_mundos",
+      "name": "Conectador de Mundos",
+      "description": "Une diferentes disciplinas, industrias o perspectivas de manera innovadora",
+      "category": "interdisciplinary",
+      "keywords": ["conexión", "disciplinas", "perspectivas", "interdisciplinario", "mundos"]
+    }
+  ],
+
+  "responseFormat": {
+    "_comment": "Estructura exacta que debe devolver OpenAI",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "dimensions": {
+          "type": "object",
+          "description": "Porcentajes para cada dimensión (0-100)",
+          "properties": {
+            "arquitecto_sistemas": {"type": "number", "minimum": 0, "maximum": 100},
+            "obsesion_ux": {"type": "number", "minimum": 0, "maximum": 100},
+            "hacker_procesos": {"type": "number", "minimum": 0, "maximum": 100},
+            "vision_panoramica": {"type": "number", "minimum": 0, "maximum": 100},
+            "data_lover": {"type": "number", "minimum": 0, "maximum": 100},
+            "detector_futuros": {"type": "number", "minimum": 0, "maximum": 100},
+            "diseñador_experiencias": {"type": "number", "minimum": 0, "maximum": 100},
+            "constructor_comunidades": {"type": "number", "minimum": 0, "maximum": 100},
+            "transformador_cultural": {"type": "number", "minimum": 0, "maximum": 100},
+            "storyteller_natural": {"type": "number", "minimum": 0, "maximum": 100},
+            "experimentador_serial": {"type": "number", "minimum": 0, "maximum": 100},
+            "conectador_mundos": {"type": "number", "minimum": 0, "maximum": 100}
+          }
+        },
+        "topDimensions": {
+          "type": "array",
+          "description": "Las 3-4 dimensiones principales con mayor porcentaje",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string", "description": "ID de la dimensión"},
+              "label": {"type": "string", "description": "Nombre legible de la dimensión"},
+              "percentage": {"type": "number", "description": "Porcentaje de esta dimensión"},
+              "reasoning": {"type": "string", "description": "Explicación de por qué esta dimensión es relevante"}
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "prompts": {
+    "_comment": "Prompts adicionales que se pueden usar en diferentes contextos",
+    "validation": "Verifica que el análisis sea coherente y que los porcentajes reflejen el contenido del prompt.",
+    "fallback": "Si no puedes determinar dimensiones claras, indica las más generales como 'Experimentador Serial' o 'Visión Panorámica'."
+  },
+
+  "ui": {
+    "_comment": "Configuraciones para la interfaz de usuario",
+    "labels": {
+      "promptTitle": "Escribe tu Prompt",
+      "promptSubtitle": "Comparte tu idea creativa y descubre tu perfil",
+      "resultsTitle": "Tu Perfil Creativo", 
+      "resultsSubtitle": "Los resultados del análisis aparecerán aquí",
+      "analyzeButton": "Analizar Prompt",
+      "analyzingButton": "Analizando...",
+      "placeholderTitle": "Tu Perfil Creativo aparecerá aquí",
+      "placeholderDescription": "Analiza tu prompt para descubrir tus dimensiones creativas y conocer tu perfil único"
+    },
+    "colors": {
+      "primary": "#cdff07",
+      "secondary": "#1a4fed", 
+      "dark": "#141414",
+      "gray": "#8f8989"
+    }
+  }
+} 

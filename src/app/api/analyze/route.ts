@@ -1,27 +1,129 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-// Definir las dimensiones esperadas para validación
-const EXPECTED_DIMENSIONS = [
-  'arquitecto_sistemas',
-  'obsesion_ux', 
-  'hacker_procesos',
-  'vision_panoramica',
-  'data_lover',
-  'detector_futuros',
-  'diseñador_experiencias',
-  'constructor_comunidades',
-  'transformador_cultural',
-  'storyteller_natural',
-  'experimentador_serial',
-  'conectador_mundos'
-];
+// Tipo para la configuración
+interface AnalysisConfig {
+  settings: {
+    openai: {
+      model: string;
+      temperature: number;
+      maxTokens: number;
+    };
+    analysis: {
+      minPromptLength: number;
+      maxTopDimensions: number;
+      responseLanguage: string;
+    };
+  };
+  systemPrompt: {
+    content: string;
+  };
+  dimensions: Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    keywords: string[];
+  }>;
+  responseFormat: {
+    schema: any;
+  };
+}
+
+// Función para cargar la configuración
+function loadAnalysisConfig(): AnalysisConfig {
+  try {
+    const configPath = join(process.cwd(), 'src', 'config', 'analysis-config.json');
+    const configFile = readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configFile) as AnalysisConfig;
+    
+    console.log('📋 [CONFIG] Configuración cargada exitosamente');
+    console.log('📊 [CONFIG] Dimensiones disponibles:', config.dimensions.length);
+    console.log('🤖 [CONFIG] Modelo:', config.settings.openai.model);
+    
+    return config;
+  } catch (error: any) {
+    console.error('❌ [CONFIG] Error cargando configuración:', error.message);
+    throw new Error(`No se pudo cargar la configuración: ${error.message}`);
+  }
+}
+
+// Función para validar el análisis según la configuración
+function validateAnalysisResult(result: any, config: AnalysisConfig): any {
+  console.log('🔍 [VALIDATION] Iniciando validación del resultado...');
+  
+  if (!result || typeof result !== 'object') {
+    throw new Error('Formato de respuesta incorrecto: no es un objeto');
+  }
+
+  if (!result.dimensions || typeof result.dimensions !== 'object') {
+    throw new Error('Formato de respuesta incorrecto: falta dimensions');
+  }
+
+  if (!result.topDimensions || !Array.isArray(result.topDimensions)) {
+    throw new Error('Formato de respuesta incorrecto: falta topDimensions');
+  }
+
+  // Validar que todas las dimensiones esperadas estén presentes
+  const expectedDimensions = config.dimensions.map(d => d.id);
+  const missingDimensions = expectedDimensions.filter(dim => 
+    !(dim in result.dimensions) || 
+    typeof result.dimensions[dim] !== 'number'
+  );
+
+  if (missingDimensions.length > 0) {
+    console.log('⚠️ [VALIDATION] Dimensiones faltantes:', missingDimensions);
+    // Añadir dimensiones faltantes con valor por defecto
+    missingDimensions.forEach(dim => {
+      result.dimensions[dim] = 0;
+    });
+  }
+
+  // Validar topDimensions
+  if (result.topDimensions.length === 0) {
+    console.log('⚠️ [VALIDATION] No hay topDimensions, generando automáticamente');
+    // Generar topDimensions desde dimensions si está vacío
+    const sortedDimensions = Object.entries(result.dimensions)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, config.settings.analysis.maxTopDimensions)
+      .map(([dimensionId, percentage]) => {
+        const dimensionConfig = config.dimensions.find(d => d.id === dimensionId);
+        return {
+          name: dimensionId,
+          label: dimensionConfig?.name || dimensionId,
+          percentage: percentage as number,
+          reasoning: "Dimensión identificada automáticamente por el análisis"
+        };
+      });
+    
+    result.topDimensions = sortedDimensions;
+  }
+
+  // Asegurar que los labels de topDimensions correspondan a los nombres configurados
+  result.topDimensions = result.topDimensions.map((topDim: any) => {
+    const dimensionConfig = config.dimensions.find(d => d.id === topDim.name);
+    return {
+      ...topDim,
+      label: dimensionConfig?.name || topDim.label
+    };
+  });
+
+  console.log('✅ [VALIDATION] Validación completada exitosamente');
+  console.log('📊 [VALIDATION] Top dimensions:', result.topDimensions.length);
+
+  return result;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json();
-
     console.log('🚀 [ANALYZE API] Iniciando análisis...');
+    
+    // Cargar configuración
+    const config = loadAnalysisConfig();
+    
+    const { prompt } = await request.json();
     console.log('📝 [ANALYZE API] Prompt length:', prompt?.length);
     
     // Debug de variables de entorno
@@ -31,90 +133,42 @@ export async function POST(request: NextRequest) {
     console.log('🔑 [ANALYZE API] API Key length:', process.env.OPENAI_API_KEY?.length);
     console.log('🔑 [ANALYZE API] API Key starts with:', process.env.OPENAI_API_KEY?.substring(0, 20) + '...');
 
-    if (!prompt || prompt.length < 50) {
+    // Validar prompt usando configuración
+    if (!prompt || prompt.length < config.settings.analysis.minPromptLength) {
       console.log('❌ [ANALYZE API] Prompt muy corto:', prompt?.length);
       return NextResponse.json(
-        { error: 'El prompt debe tener al menos 50 caracteres' },
+        { error: `El prompt debe tener al menos ${config.settings.analysis.minPromptLength} caracteres` },
         { status: 400 }
       );
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'tu-api-key-aqui') {
       console.log('❌ [ANALYZE API] API key no configurada o es placeholder');
-      console.log('🔍 [ANALYZE API] Current value:', process.env.OPENAI_API_KEY);
       return NextResponse.json(
         { error: 'API key de OpenAI no configurada. Revisa tu archivo .env.local' },
         { status: 500 }
       );
     }
 
-    // Inicializar OpenAI dentro del handler
+    // Inicializar OpenAI con configuración
     console.log('🤖 [ANALYZE API] Inicializando cliente OpenAI...');
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const systemPrompt = `Eres un experto analista de perfiles creativos de LabnoLab. 
-
-IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido. No incluyas explicaciones adicionales, texto antes o después del JSON, ni markdown. Solo el JSON.
-
-Analiza el texto según estas 12 dimensiones creativas de LabnoLab:
-
-1. **arquitecto_sistemas** - Habilidad para diseñar y estructurar sistemas complejos, pensar en arquitecturas y frameworks
-2. **obsesion_ux** - Enfoque intenso en la experiencia del usuario, usabilidad y diseño centrado en las personas
-3. **hacker_procesos** - Capacidad para optimizar, automatizar y mejorar procesos existentes de forma creativa
-4. **vision_panoramica** - Habilidad para ver el panorama general, conectar contextos amplios y pensar estratégicamente
-5. **data_lover** - Pasión por los datos, análisis, métricas y toma de decisiones basada en información
-6. **detector_futuros** - Capacidad para anticipar tendencias, identificar oportunidades emergentes y pensar en escenarios futuros
-7. **diseñador_experiencias** - Habilidad para crear y diseñar experiencias memorables e impactantes
-8. **constructor_comunidades** - Talento para crear, nutrir y hacer crecer comunidades y ecosistemas colaborativos
-9. **transformador_cultural** - Capacidad para generar cambios culturales y transformar mentalidades
-10. **storyteller_natural** - Habilidad excepcional para contar historias, comunicar ideas y crear narrativas envolventes
-11. **experimentador_serial** - Tendencia a experimentar constantemente, probar nuevas ideas y iterar rápidamente
-12. **conectador_mundos** - Habilidad para conectar diferentes sectores, disciplinas y crear puentes entre mundos diversos
-
-FORMATO EXACTO REQUERIDO (copia exactamente esta estructura):
-{
-  "dimensions": {
-    "arquitecto_sistemas": 75,
-    "obsesion_ux": 45,
-    "hacker_procesos": 60,
-    "vision_panoramica": 80,
-    "data_lover": 30,
-    "detector_futuros": 70,
-    "diseñador_experiencias": 55,
-    "constructor_comunidades": 40,
-    "transformador_cultural": 65,
-    "storyteller_natural": 85,
-    "experimentador_serial": 50,
-    "conectador_mundos": 45
-  },
-  "topDimensions": [
-    {
-      "name": "storyteller_natural",
-      "label": "Storyteller Natural",
-      "percentage": 85,
-      "reasoning": "El texto demuestra narrativa excepcional con estructura clara y elementos envolventes"
-    },
-    {
-      "name": "vision_panoramica",
-      "label": "Visión Panorámica", 
-      "percentage": 80,
-      "reasoning": "Muestra capacidad para conectar múltiples contextos y pensar estratégicamente"
-    }
-  ]
-}
-
-INSTRUCCIONES:
-- Asigna porcentajes (0-100) según evidencia en el texto
-- Identifica 2-4 dimensiones principales (generalmente 60%+)
-- Cada dimensión se evalúa independientemente
-- Responde SOLO con el JSON, sin texto adicional`;
+    // Construir prompt del sistema desde la configuración
+    console.log('📋 [ANALYZE API] Construyendo prompt del sistema desde configuración...');
+    const systemPrompt = config.systemPrompt.content;
 
     console.log('🤖 [ANALYZE API] Enviando prompt a OpenAI...');
+    console.log('⚙️ [ANALYZE API] Configuración:', {
+      model: config.settings.openai.model,
+      temperature: config.settings.openai.temperature,
+      maxTokens: config.settings.openai.maxTokens
+    });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: config.settings.openai.model,
       messages: [
         {
           role: "system",
@@ -125,8 +179,8 @@ INSTRUCCIONES:
           content: `Analiza este prompt creativo y responde ÚNICAMENTE con el JSON:\n\n"${prompt}"`
         }
       ],
-      temperature: 0.1, // Reducido para más consistencia
-      max_tokens: 1200,
+      temperature: config.settings.openai.temperature,
+      max_tokens: config.settings.openai.maxTokens,
     });
 
     console.log('✅ [ANALYZE API] Respuesta recibida de OpenAI');
@@ -185,60 +239,19 @@ INSTRUCCIONES:
       }
     }
 
-    // Validar estructura básica
-    if (!analysisResult || typeof analysisResult !== 'object') {
-      console.log('❌ [ANALYZE API] Resultado no es un objeto válido');
-      throw new Error('Formato de respuesta incorrecto: no es un objeto');
-    }
-
-    if (!analysisResult.dimensions || typeof analysisResult.dimensions !== 'object') {
-      console.log('❌ [ANALYZE API] Falta objeto dimensions');
-      throw new Error('Formato de respuesta incorrecto: falta dimensions');
-    }
-
-    if (!analysisResult.topDimensions || !Array.isArray(analysisResult.topDimensions)) {
-      console.log('❌ [ANALYZE API] Falta array topDimensions');
-      throw new Error('Formato de respuesta incorrecto: falta topDimensions');
-    }
-
-    // Validar que todas las dimensiones esperadas estén presentes
-    const missingDimensions = EXPECTED_DIMENSIONS.filter(dim => 
-      !(dim in analysisResult.dimensions) || 
-      typeof analysisResult.dimensions[dim] !== 'number'
-    );
-
-    if (missingDimensions.length > 0) {
-      console.log('⚠️ [ANALYZE API] Dimensiones faltantes:', missingDimensions);
-      // Añadir dimensiones faltantes con valor por defecto
-      missingDimensions.forEach(dim => {
-        analysisResult.dimensions[dim] = 0;
-      });
-    }
-
-    // Validar topDimensions
-    if (analysisResult.topDimensions.length === 0) {
-      console.log('⚠️ [ANALYZE API] No hay topDimensions, generando automáticamente');
-      // Generar topDimensions desde dimensions si está vacío
-      const sortedDimensions = Object.entries(analysisResult.dimensions)
-        .sort(([,a], [,b]) => (b as number) - (a as number))
-        .slice(0, 3)
-        .map(([name, percentage]) => ({
-          name,
-          label: name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-          percentage: percentage as number,
-          reasoning: "Dimensión identificada automáticamente por el análisis"
-        }));
-      
-      analysisResult.topDimensions = sortedDimensions;
-    }
+    // Validar y normalizar resultado usando configuración
+    const validatedResult = validateAnalysisResult(analysisResult, config);
 
     console.log('✅ [ANALYZE API] Análisis completado exitosamente');
-    console.log('📊 [ANALYZE API] Top dimensions:', analysisResult.topDimensions.length);
 
     return NextResponse.json({
       success: true,
-      analysis: analysisResult,
-      timestamp: new Date().toISOString()
+      analysis: validatedResult,
+      timestamp: new Date().toISOString(),
+      config: {
+        model: config.settings.openai.model,
+        dimensionsCount: config.dimensions.length
+      }
     });
 
   } catch (error: any) {
@@ -266,6 +279,17 @@ INSTRUCCIONES:
       return NextResponse.json(
         { 
           error: 'Error procesando la respuesta de IA. La respuesta no tiene el formato esperado.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 500 }
+      );
+    }
+
+    if (error.message?.includes('configuración')) {
+      console.log('📋 [ANALYZE API] Error de configuración');
+      return NextResponse.json(
+        { 
+          error: 'Error en la configuración del sistema. Contacta al administrador.',
           details: process.env.NODE_ENV === 'development' ? error.message : undefined
         },
         { status: 500 }
