@@ -16,6 +16,20 @@ import {
 import { TrendAnalysis } from '@/types/analysis';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import dynamic from 'next/dynamic';
+
+// Import dinámico para evitar problemas de SSR con Leaflet
+const TrendMap = dynamic(() => import('./TrendMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] bg-slate-900/50 rounded-lg flex items-center justify-center border border-slate-700/30">
+      <div className="text-center">
+        <div className="w-8 h-8 text-slate-500 mx-auto mb-2 animate-spin border-2 border-slate-500 border-t-transparent rounded-full"></div>
+        <p className="text-sm text-slate-500">Cargando mapa geográfico...</p>
+      </div>
+    </div>
+  )
+});
 
 interface AnalysisResultsProps {
   analysis: TrendAnalysis;
@@ -353,13 +367,7 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
               <MapPin className="w-6 h-6 text-[#00ff88]" />
               <h3 className="text-lg font-semibold text-white">Mapa Geográfico</h3>
             </div>
-            <div className="h-32 bg-slate-900/50 rounded-lg flex items-center justify-center border border-slate-700/30">
-              <div className="text-center">
-                <Globe className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">Visualización de propagación geográfica</p>
-                <p className="text-xs text-slate-600 mt-1">(Próximamente)</p>
-              </div>
-            </div>
+            <TrendMap analysis={analysis} />
           </div>
 
           <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">

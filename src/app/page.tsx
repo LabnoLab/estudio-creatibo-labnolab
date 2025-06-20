@@ -24,6 +24,20 @@ import {
 import { TrendAnalysis, AnalysisState, UploadState, AnalysisHistoryItem } from '@/types/analysis';
 import { saveAnalysis, getAnalysisHistory, getAnalysisById } from '@/lib/database';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
+
+// Import dinámico para el mapa geográfico
+const TrendMap = dynamic(() => import('@/components/TrendMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] bg-slate-900/50 rounded-lg flex items-center justify-center border border-slate-700/30">
+      <div className="text-center">
+        <div className="w-8 h-8 text-slate-500 mx-auto mb-2 animate-spin border-2 border-slate-500 border-t-transparent rounded-full"></div>
+        <p className="text-sm text-slate-500">Cargando mapa geográfico...</p>
+      </div>
+    </div>
+  )
+});
 
 export default function Home() {
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -538,20 +552,36 @@ export default function Home() {
                   </div>
 
                   {/* 3. Análisis Geográfico */}
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 lg:col-span-2">
                     <div className="flex items-center gap-3 mb-4">
                       <MapPin className="w-6 h-6 text-[#00ff88]" />
                       <h3 className="text-lg font-semibold text-white">Análisis Geográfico</h3>
                     </div>
-                    <div className="space-y-3">
-                      <div><span className="text-slate-400">Epicentro:</span> <span className="text-[#00ff88]">{analysisState.result.analisis.analisis_geografico.epicentro}</span></div>
-                      <div>
-                        <span className="text-slate-400">Adopción:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {analysisState.result.analisis.analisis_geografico.zonas_adopcion.map((zona, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-green-900/20 border border-green-500/30 rounded text-xs text-green-300">{zona}</span>
-                          ))}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Información textual */}
+                      <div className="space-y-3">
+                        <div><span className="text-slate-400">Epicentro:</span> <span className="text-[#00ff88]">{analysisState.result.analisis.analisis_geografico.epicentro}</span></div>
+                        <div>
+                          <span className="text-slate-400">Adopción:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {analysisState.result.analisis.analisis_geografico.zonas_adopcion.map((zona, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-green-900/20 border border-green-500/30 rounded text-xs text-green-300">{zona}</span>
+                            ))}
+                          </div>
                         </div>
+                        <div>
+                          <span className="text-slate-400">Resistencias:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {analysisState.result.analisis.analisis_geografico.resistencias.map((zona, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-300">{zona}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Mapa Geográfico Interactivo */}
+                      <div>
+                        <TrendMap analysis={analysisState.result} />
                       </div>
                     </div>
                   </div>
