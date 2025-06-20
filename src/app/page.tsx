@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp, Users, Eye, Lightbulb } from "lucide-react";
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 
@@ -16,6 +16,19 @@ interface AnalysisResult {
 
 interface ImprovementResult {
   improvedPrompt: string;
+  originalPrompt: string;
+  dominantDimension: string;
+}
+
+interface PerspectiveResult {
+  dimension: string;
+  label: string;
+  rewritten_prompt: string;
+  insight: string;
+}
+
+interface PerspectivesResult {
+  perspectives: PerspectiveResult[];
   originalPrompt: string;
   dominantDimension: string;
 }
@@ -131,6 +144,11 @@ export default function Home() {
   const [showImprovement, setShowImprovement] = useState(false);
   const [improvementError, setImprovementError] = useState<string | null>(null);
   
+  // Estados para otras perspectivas
+  const [isGeneratingPerspectives, setIsGeneratingPerspectives] = useState(false);
+  const [perspectivesResult, setPerspectivesResult] = useState<PerspectivesResult | null>(null);
+  const [perspectivesError, setPerspectivesError] = useState<string | null>(null);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const minChars = 50;
@@ -180,6 +198,7 @@ export default function Home() {
     if (analysisResult) setAnalysisResult(null);
     if (improvementResult) setImprovementResult(null);
     if (showImprovement) setShowImprovement(false);
+    if (perspectivesResult) setPerspectivesResult(null);
   };
 
   // Función para analizar el prompt
@@ -191,6 +210,8 @@ export default function Home() {
     setAnalysisResult(null);
     setImprovementResult(null);
     setShowImprovement(false);
+    setIsGeneratingPerspectives(false);
+    setPerspectivesResult(null);
 
     try {
       const response = await fetch('/api/analyze', {
@@ -249,6 +270,42 @@ export default function Home() {
       setImprovementError(err.message || 'Error conectando con el servidor');
     } finally {
       setIsImproving(false);
+    }
+  };
+
+  // Función para generar otras perspectivas
+  const handleGeneratePerspectives = async () => {
+    if (!analysisResult || !prompt || isGeneratingPerspectives) return;
+
+    setIsGeneratingPerspectives(true);
+    setPerspectivesError(null);
+    setPerspectivesResult(null);
+
+    try {
+      const dominantDimension = analysisResult.topDimensions[0];
+      
+      const response = await fetch('/api/other-perspectives', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          originalPrompt: prompt,
+          dominantDimension 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error generando perspectivas');
+      }
+
+      setPerspectivesResult(data);
+    } catch (err: any) {
+      setPerspectivesError(err.message || 'Error conectando con el servidor');
+    } finally {
+      setIsGeneratingPerspectives(false);
     }
   };
 
@@ -317,19 +374,20 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Layout de Dos Columnas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[600px]">
+        {/* Layout Responsive Optimizado */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* COLUMNA IZQUIERDA - Área de Prompt */}
-          <div className="space-y-6">
-            <div className="text-center lg:text-left">
-              <h3 className="text-2xl font-bold text-[#141414] mb-2">
-                Escribe tu Prompt
-              </h3>
-              <p className="text-[#8f8989]">
-                Comparte tu idea creativa y descubre tu perfil
-              </p>
-            </div>
+          {/* COLUMNA IZQUIERDA - Área de Prompt (Altura Fija con Scroll) */}
+          <div className="lg:sticky lg:top-8 lg:h-fit lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+            <div className="space-y-6">
+              <div className="text-center lg:text-left">
+                <h3 className="text-2xl font-bold text-[#141414] mb-2">
+                  Escribe tu Prompt
+                </h3>
+                <p className="text-[#8f8989]">
+                  Comparte tu idea creativa y descubre tu perfil
+                </p>
+              </div>
 
             {/* Área de Prompt Interactiva */}
             <div className="group">
@@ -425,7 +483,7 @@ También puedes arrastrar un archivo .txt aquí ↓"
               </div>
             </div>
 
-            {/* Botón Analizar */}
+            {/* Botones */}
             <div className="space-y-4">
               <button 
                 onClick={handleAnalyze}
@@ -497,16 +555,59 @@ También puedes arrastrar un archivo .txt aquí ↓"
                   </motion.button>
                 )}
               </AnimatePresence>
+
+              {/* Botón Otras Perspectivas - Solo aparece después del análisis */}
+              <AnimatePresence>
+                {analysisResult && (
+                  <motion.button 
+                    onClick={handleGeneratePerspectives}
+                    disabled={isGeneratingPerspectives}
+                    className={`w-full relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-xl shadow-lg overflow-hidden group transition-all duration-300 ${
+                      !isGeneratingPerspectives
+                        ? 'bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white hover:shadow-xl hover:-translate-y-1 cursor-pointer'
+                        : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 cursor-not-allowed'
+                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5, delay: 0.7 }}
+                  >
+                    {/* Contenido del botón */}
+                    <div className="relative flex items-center space-x-3">
+                      {isGeneratingPerspectives ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Users className="h-5 w-5" />
+                      )}
+                      <span>
+                        {isGeneratingPerspectives 
+                          ? 'Generando...' 
+                          : '🌈 Otras Perspectivas'
+                        }
+                      </span>
+                    </div>
+                    
+                    {/* Efecto de brillo para estado activo */}
+                    {!isGeneratingPerspectives && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    )}
+                  </motion.button>
+                )}
+              </AnimatePresence>
               
               <p className="text-sm text-[#8f8989] font-medium text-center">
                 {error ? (
                   <span className="text-red-500">{error}</span>
                 ) : improvementError ? (
                   <span className="text-red-500">{improvementError}</span>
+                ) : perspectivesError ? (
+                  <span className="text-red-500">{perspectivesError}</span>
                 ) : isAnalyzing ? (
                   'Procesando con IA...'
                 ) : isImproving ? (
                   'Mejorando tu prompt...'
+                ) : isGeneratingPerspectives ? (
+                  'Generando perspectivas diversas...'
                 ) : isValidPrompt ? (
                   '¡Tu prompt está listo para ser analizado!'
                 ) : (
@@ -514,10 +615,11 @@ También puedes arrastrar un archivo .txt aquí ↓"
                 )}
               </p>
             </div>
+            </div>
           </div>
 
-          {/* COLUMNA DERECHA - Área de Resultados */}
-          <div className="space-y-6">
+          {/* COLUMNA DERECHA - Área de Resultados (Flujo Vertical) */}
+          <div className="space-y-8">
             <div className="text-center lg:text-left">
               <h3 className="text-2xl font-bold text-[#141414] mb-2">
                 Tu Perfil Creativo
@@ -528,13 +630,13 @@ También puedes arrastrar un archivo .txt aquí ↓"
             </div>
 
             {/* Card de Resultados */}
-            <div className="h-full min-h-[500px]">
+            <div className="min-h-[500px]">
               <AnimatePresence mode="wait">
                 {analysisResult ? (
                   /* Mostrar Resultados con Animaciones */
                   <motion.div 
                     key="results"
-                    className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50 h-full"
+                    className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50"
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -20 }}
@@ -577,7 +679,7 @@ También puedes arrastrar un archivo .txt aquí ↓"
                   /* Placeholder Estado Inicial */
                   <motion.div 
                     key="placeholder"
-                    className="bg-white/70 backdrop-blur-xl border-2 border-gray-200/50 rounded-2xl shadow-xl h-full flex items-center justify-center"
+                    className="bg-white/70 backdrop-blur-xl border-2 border-gray-200/50 rounded-2xl shadow-xl min-h-[500px] flex items-center justify-center"
                     initial={{ opacity: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.3 }}
@@ -610,38 +712,34 @@ También puedes arrastrar un archivo .txt aquí ↓"
                 )}
               </AnimatePresence>
             </div>
-          </div>
 
-        </div>
-
-        {/* Sección de Mejora de Prompt */}
-        <AnimatePresence>
-          {improvementResult && (
-            <motion.div
-              className="mt-12 max-w-7xl mx-auto"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -50 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-[#1a4fed]/20 to-[#cdff07]/20 flex items-center justify-center">
-                      <Wand2 className="h-6 w-6 text-[#1a4fed]" />
+            {/* Sección de Mejora de Prompt - Integrada en Columna Derecha */}
+            <AnimatePresence>
+              {improvementResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -30 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-gray-200/50">
+                                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#1a4fed]/20 to-[#cdff07]/20 flex items-center justify-center">
+                          <Wand2 className="h-5 w-5 text-[#1a4fed]" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-[#141414]">Prompt Mejorado</h4>
+                          <p className="text-xs text-[#8f8989]">Optimizado desde la perspectiva de {improvementResult.dominantDimension}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowImprovement(!showImprovement)}
+                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        {showImprovement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-[#141414]">Prompt Mejorado</h3>
-                      <p className="text-sm text-[#8f8989]">Optimizado desde la perspectiva de {improvementResult.dominantDimension}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowImprovement(!showImprovement)}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    {showImprovement ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                  </button>
-                </div>
 
                 <AnimatePresence>
                   {showImprovement && (
@@ -652,40 +750,40 @@ También puedes arrastrar un archivo .txt aquí ↓"
                       transition={{ duration: 0.4 }}
                       className="overflow-hidden"
                     >
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
                         {/* Prompt Original */}
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-[#8f8989]">Antes</h4>
+                            <h5 className="font-semibold text-[#8f8989] text-sm">Antes</h5>
                             <button
                               onClick={() => copyToClipboard(improvementResult.originalPrompt)}
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                               title="Copiar prompt original"
                             >
-                              <Copy className="h-4 w-4 text-[#8f8989]" />
+                              <Copy className="h-3.5 w-3.5 text-[#8f8989]" />
                             </button>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                            <p className="text-sm text-[#141414] leading-relaxed">
+                          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <p className="text-xs text-[#141414] leading-relaxed">
                               {improvementResult.originalPrompt}
                             </p>
                           </div>
                         </div>
 
                         {/* Prompt Mejorado */}
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-[#1a4fed]">Después</h4>
+                            <h5 className="font-semibold text-[#1a4fed] text-sm">Después</h5>
                             <button
                               onClick={() => copyToClipboard(improvementResult.improvedPrompt)}
-                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
                               title="Copiar prompt mejorado"
                             >
-                              <Copy className="h-4 w-4 text-[#1a4fed]" />
+                              <Copy className="h-3.5 w-3.5 text-[#1a4fed]" />
                             </button>
                           </div>
-                          <div className="bg-gradient-to-br from-[#1a4fed]/5 to-[#cdff07]/5 rounded-xl p-4 border border-[#1a4fed]/20">
-                            <p className="text-sm text-[#141414] leading-relaxed">
+                          <div className="bg-gradient-to-br from-[#1a4fed]/5 to-[#cdff07]/5 rounded-lg p-3 border border-[#1a4fed]/20">
+                            <p className="text-xs text-[#141414] leading-relaxed">
                               {improvementResult.improvedPrompt}
                             </p>
                           </div>
@@ -694,10 +792,115 @@ También puedes arrastrar un archivo .txt aquí ↓"
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Sección de Otras Perspectivas - Integrada en Columna Derecha */}
+            <AnimatePresence>
+              {perspectivesResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -30 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-gray-200/50">
+                    {/* Header de la sección */}
+                    <div className="text-center mb-6">
+                      <div className="flex items-center justify-center space-x-3 mb-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#8b5cf6]/20 to-[#a855f7]/20 flex items-center justify-center">
+                          <Users className="h-5 w-5 text-[#8b5cf6]" />
+                        </div>
+                        <h4 className="text-lg font-bold text-[#141414]">🌈 Otras Perspectivas</h4>
+                      </div>
+                      <p className="text-sm text-[#8f8989] mb-1">¿Cómo verían otros perfiles tu idea?</p>
+                      <p className="text-xs text-[#8f8989]">Conecta con la diversidad de tu equipo</p>
+                    </div>
+
+                    {/* Grid de Perspectivas - Optimizado para Columna */}
+                    <div className="space-y-4">
+                      {perspectivesResult.perspectives.map((perspective, index) => (
+                        <motion.div
+                          key={perspective.dimension}
+                          className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-4 border border-gray-200/50 shadow-md hover:shadow-lg transition-all duration-300"
+                          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ 
+                            duration: 0.4, 
+                            delay: index * 0.1,
+                            type: "spring",
+                            stiffness: 200 
+                          }}
+                        >
+                          {/* Header de la card */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#8b5cf6]/20 to-[#a855f7]/20 flex items-center justify-center">
+                                <Eye className="h-4 w-4 text-[#8b5cf6]" />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-[#141414] text-xs">Desde la perspectiva de</h5>
+                                <p className="text-[#8b5cf6] font-semibold text-sm">{perspective.label}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(perspective.rewritten_prompt)}
+                              className="p-1.5 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Copiar prompt desde esta perspectiva"
+                            >
+                              <Copy className="h-3.5 w-3.5 text-[#8b5cf6]" />
+                            </button>
+                          </div>
+
+                          {/* Prompt reescrito */}
+                          <div className="mb-3">
+                            <div className="bg-gradient-to-br from-[#8b5cf6]/5 to-[#a855f7]/5 rounded-lg p-3 border border-[#8b5cf6]/20">
+                              <p className="text-xs text-[#141414] leading-relaxed">
+                                {perspective.rewritten_prompt}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Insight */}
+                          <div className="border-t border-gray-200 pt-3">
+                            <div className="flex items-start space-x-2">
+                              <Lightbulb className="h-3.5 w-3.5 text-[#cdff07] mt-0.5 flex-shrink-0" />
+                              <div>
+                                <h6 className="font-semibold text-[#141414] text-xs mb-1">¿Por qué es valiosa esta perspectiva?</h6>
+                                <p className="text-xs text-[#8f8989] leading-relaxed">
+                                  {perspective.insight}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Footer informativo */}
+                    <motion.div 
+                      className="mt-4 text-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-[#8b5cf6]/10 to-[#a855f7]/10 rounded-full px-3 py-1.5 border border-[#8b5cf6]/20">
+                        <Users className="h-3.5 w-3.5 text-[#8b5cf6]" />
+                        <p className="text-xs text-[#8b5cf6] font-medium">
+                          Complementarias a tu perfil {perspectivesResult.dominantDimension}
+                        </p>
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+          </div>
+
+        </div>
 
       </main>
 
