@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 // Tipo para la configuración
-interface AnalysisConfig {
+export interface AnalysisConfig {
   settings: {
     openai: {
       model: string;
@@ -305,4 +305,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
+
+// Exportar funciones para uso en otras rutas API
+export { loadAnalysisConfig, validateAnalysisResult };

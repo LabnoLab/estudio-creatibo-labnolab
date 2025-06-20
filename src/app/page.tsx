@@ -1,8 +1,9 @@
 "use client";
 
-import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp, Users, Eye, Lightbulb, Bot, Star } from "lucide-react";
+import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp, Users, Eye, Lightbulb, Bot, Star, Palette } from "lucide-react";
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import CadaverExquisito from "@/components/CadaverExquisito";
 
 interface AnalysisResult {
   dimensions: Record<string, number>;
@@ -147,6 +148,9 @@ const AnimatedProgressBar = ({
 };
 
 export default function Home() {
+  // Estado para navegación de pestañas
+  const [activeTab, setActiveTab] = useState<'individual' | 'cadaver'>('individual');
+  
   const [prompt, setPrompt] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -418,8 +422,69 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Área Principal con Layout de Dos Columnas */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      {/* Navegación de Pestañas */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex space-x-0">
+            {/* Pestaña Análisis Individual */}
+            <button
+              onClick={() => setActiveTab('individual')}
+              className={`relative px-6 py-4 text-sm font-semibold transition-all duration-300 ${
+                activeTab === 'individual'
+                  ? 'text-[#1a4fed] border-b-2 border-[#1a4fed]'
+                  : 'text-[#8f8989] hover:text-[#141414]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Brain className="h-4 w-4" />
+                <span>Análisis Individual</span>
+              </div>
+              {activeTab === 'individual' && (
+                <motion.div
+                  className="absolute inset-0 bg-[#1a4fed]/5 rounded-t-lg"
+                  layoutId="activeTab"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </button>
+
+            {/* Pestaña Cadáver Exquisito */}
+            <button
+              onClick={() => setActiveTab('cadaver')}
+              className={`relative px-6 py-4 text-sm font-semibold transition-all duration-300 ${
+                activeTab === 'cadaver'
+                  ? 'text-[#e879f9] border-b-2 border-[#e879f9]'
+                  : 'text-[#8f8989] hover:text-[#141414]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Palette className="h-4 w-4" />
+                <span>Cadáver Exquisito</span>
+              </div>
+              {activeTab === 'cadaver' && (
+                <motion.div
+                  className="absolute inset-0 bg-[#e879f9]/5 rounded-t-lg"
+                  layoutId="activeTab"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido de las Pestañas */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'individual' ? (
+          <motion.div
+            key="individual"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Área Principal con Layout de Dos Columnas */}
+            <main className="max-w-7xl mx-auto px-6 py-8">
         
         {/* Título Principal */}
         <div className="text-center space-y-4 mb-12">
@@ -1150,7 +1215,20 @@ También puedes arrastrar un archivo .txt aquí ↓"
 
         </div>
 
-      </main>
+            </main>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="cadaver"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CadaverExquisito />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Elementos decorativos de fondo */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
