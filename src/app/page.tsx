@@ -1,7 +1,8 @@
 "use client";
 
 import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3 } from "lucide-react";
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 
 interface AnalysisResult {
   dimensions: Record<string, number>;
@@ -12,6 +13,104 @@ interface AnalysisResult {
     reasoning: string;
   }>;
 }
+
+// Componente para contador animado
+const AnimatedCounter = ({ value, duration = 2 }: { value: number; duration?: number }) => {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, Math.round);
+
+  useEffect(() => {
+    const animation = animate(count, value, { duration });
+    return animation.stop;
+  }, [value, count, duration]);
+
+  return <motion.span>{rounded}</motion.span>;
+};
+
+// Componente para barra de progreso animada
+const AnimatedProgressBar = ({ 
+  percentage, 
+  delay = 0,
+  label,
+  reasoning 
+}: { 
+  percentage: number; 
+  delay?: number;
+  label: string;
+  reasoning: string;
+}) => {
+  return (
+    <motion.div 
+      className="space-y-3"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ 
+        duration: 0.6, 
+        delay: delay,
+        ease: [0.25, 0.46, 0.45, 0.94]
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <motion.h5 
+          className="font-semibold text-[#141414] text-lg"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: delay + 0.2 }}
+        >
+          {label}
+        </motion.h5>
+        <motion.span 
+          className="text-[#1a4fed] font-bold text-xl"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ 
+            duration: 0.5, 
+            delay: delay + 0.4,
+            type: "spring",
+            stiffness: 200
+          }}
+        >
+          <AnimatedCounter value={percentage} duration={1.5} />%
+        </motion.span>
+      </div>
+      
+      {/* Contenedor de la barra de progreso */}
+      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+        <motion.div 
+          className="h-3 rounded-full bg-gradient-to-r from-[#1a4fed] to-[#cdff07] relative"
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ 
+            duration: 1.5, 
+            delay: delay + 0.3,
+            ease: [0.25, 0.46, 0.45, 0.94]
+          }}
+        >
+          {/* Efecto de brillo que se mueve */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full"
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{
+              duration: 1.2,
+              delay: delay + 0.8,
+              ease: "easeInOut"
+            }}
+          />
+        </motion.div>
+      </div>
+      
+      <motion.p 
+        className="text-sm text-[#8f8989] italic leading-relaxed"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: delay + 0.6 }}
+      >
+        {reasoning}
+      </motion.p>
+    </motion.div>
+  );
+};
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
@@ -199,12 +298,12 @@ export default function Home() {
                     
                     {/* Contador de caracteres */}
                     <div className="text-right">
-                      <div className={`text-sm font-semibold ${
-                        isValidPrompt ? 'text-[#cdff07]' : isEmpty ? 'text-[#8f8989]' : 'text-[#1a4fed]'
-                      }`}>
+                      <div className="text-sm font-semibold text-[#141414]">
                         {prompt.length}
                       </div>
-                      <div className="text-xs text-[#8f8989]">caracteres</div>
+                      <div className="text-xs text-[#8f8989]">
+                        caracteres
+                      </div>
                     </div>
                   </div>
 
@@ -323,73 +422,86 @@ También puedes arrastrar un archivo .txt aquí ↓"
 
             {/* Card de Resultados */}
             <div className="h-full min-h-[500px]">
-              {analysisResult ? (
-                /* Mostrar Resultados */
-                <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50 h-full">
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center">
-                      <BarChart3 className="h-6 w-6 text-[#1a4fed]" />
+              <AnimatePresence mode="wait">
+                {analysisResult ? (
+                  /* Mostrar Resultados con Animaciones */
+                  <motion.div 
+                    key="results"
+                    className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50 h-full"
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 20,
+                      duration: 0.6
+                    }}
+                  >
+                    <motion.div 
+                      className="flex items-center space-x-3 mb-6"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center">
+                        <BarChart3 className="h-6 w-6 text-[#1a4fed]" />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold text-[#141414]">Análisis Completado</h4>
+                        <p className="text-sm text-[#8f8989]">Tus dimensiones creativas principales</p>
+                      </div>
+                    </motion.div>
+                    
+                    {/* Top Dimensiones con Animaciones Staggered */}
+                    <div className="space-y-6">
+                      {analysisResult.topDimensions.map((dimension, index) => (
+                        <AnimatedProgressBar
+                          key={dimension.name}
+                          percentage={dimension.percentage}
+                          label={dimension.label}
+                          reasoning={dimension.reasoning}
+                          delay={index * 0.2}
+                        />
+                      ))}
                     </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-[#141414]">Análisis Completado</h4>
-                      <p className="text-sm text-[#8f8989]">Tus dimensiones creativas principales</p>
-                    </div>
-                  </div>
-                  
-                  {/* Top Dimensiones */}
-                  <div className="space-y-6">
-                    {analysisResult.topDimensions.map((dimension, index) => (
-                      <div key={dimension.name} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h5 className="font-semibold text-[#141414] text-lg">
-                            {dimension.label}
-                          </h5>
-                          <span className="text-[#1a4fed] font-bold text-xl">
-                            {dimension.percentage}%
-                          </span>
+                  </motion.div>
+                ) : (
+                  /* Placeholder Estado Inicial */
+                  <motion.div 
+                    key="placeholder"
+                    className="bg-white/70 backdrop-blur-xl border-2 border-gray-200/50 rounded-2xl shadow-xl h-full flex items-center justify-center"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="text-center space-y-6 p-8">
+                      <div className="relative">
+                        <div className="h-20 w-20 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center mx-auto mb-4">
+                          <BarChart3 className="h-10 w-10 text-[#8f8989]" />
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div 
-                            className="h-3 rounded-full bg-gradient-to-r from-[#1a4fed] to-[#cdff07] transition-all duration-1000 ease-out"
-                            style={{ width: `${dimension.percentage}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-sm text-[#8f8989] italic leading-relaxed">
-                          {dimension.reasoning}
+                        <div className="absolute -inset-2 bg-gradient-to-r from-[#cdff07]/10 to-[#1a4fed]/10 rounded-full blur-lg"></div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <h4 className="text-xl font-semibold text-[#141414]">
+                          Tu Perfil Creativo aparecerá aquí
+                        </h4>
+                        <p className="text-[#8f8989] leading-relaxed max-w-sm mx-auto">
+                          Analiza tu prompt para descubrir tus dimensiones creativas y conocer tu perfil único
                         </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                /* Placeholder Estado Inicial */
-                <div className="bg-white/70 backdrop-blur-xl border-2 border-gray-200/50 rounded-2xl shadow-xl h-full flex items-center justify-center">
-                  <div className="text-center space-y-6 p-8">
-                    <div className="relative">
-                      <div className="h-20 w-20 rounded-full bg-gradient-to-r from-[#cdff07]/20 to-[#1a4fed]/20 flex items-center justify-center mx-auto mb-4">
-                        <BarChart3 className="h-10 w-10 text-[#8f8989]" />
-                      </div>
-                      <div className="absolute -inset-2 bg-gradient-to-r from-[#cdff07]/10 to-[#1a4fed]/10 rounded-full blur-lg"></div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <h4 className="text-xl font-semibold text-[#141414]">
-                        Tu Perfil Creativo aparecerá aquí
-                      </h4>
-                      <p className="text-[#8f8989] leading-relaxed max-w-sm mx-auto">
-                        Analiza tu prompt para descubrir tus dimensiones creativas y conocer tu perfil único
-                      </p>
-                    </div>
 
-                    {/* Elementos decorativos */}
-                    <div className="flex items-center justify-center space-x-2 opacity-50">
-                      <div className="h-2 w-2 rounded-full bg-[#cdff07]"></div>
-                      <div className="h-2 w-8 rounded-full bg-gradient-to-r from-[#cdff07] to-[#1a4fed]"></div>
-                      <div className="h-2 w-2 rounded-full bg-[#1a4fed]"></div>
+                      {/* Elementos decorativos */}
+                      <div className="flex items-center justify-center space-x-2 opacity-50">
+                        <div className="h-2 w-2 rounded-full bg-[#cdff07]"></div>
+                        <div className="h-2 w-8 rounded-full bg-gradient-to-r from-[#cdff07] to-[#1a4fed]"></div>
+                        <div className="h-2 w-2 rounded-full bg-[#1a4fed]"></div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
