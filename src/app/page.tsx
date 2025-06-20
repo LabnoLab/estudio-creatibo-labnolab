@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3 } from "lucide-react";
+import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 
@@ -12,6 +12,12 @@ interface AnalysisResult {
     percentage: number;
     reasoning: string;
   }>;
+}
+
+interface ImprovementResult {
+  improvedPrompt: string;
+  originalPrompt: string;
+  dominantDimension: string;
 }
 
 // Componente para contador animado
@@ -118,6 +124,13 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para mejora de prompt
+  const [isImproving, setIsImproving] = useState(false);
+  const [improvementResult, setImprovementResult] = useState<ImprovementResult | null>(null);
+  const [showImprovement, setShowImprovement] = useState(false);
+  const [improvementError, setImprovementError] = useState<string | null>(null);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const minChars = 50;
@@ -165,6 +178,8 @@ export default function Home() {
     // Limpiar errores y resultados anteriores cuando se edita
     if (error) setError(null);
     if (analysisResult) setAnalysisResult(null);
+    if (improvementResult) setImprovementResult(null);
+    if (showImprovement) setShowImprovement(false);
   };
 
   // Función para analizar el prompt
@@ -174,6 +189,8 @@ export default function Home() {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
+    setImprovementResult(null);
+    setShowImprovement(false);
 
     try {
       const response = await fetch('/api/analyze', {
@@ -195,6 +212,53 @@ export default function Home() {
       setError(err.message || 'Error conectando con el servidor');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Función para mejorar el prompt
+  const handleImprovePrompt = async () => {
+    if (!analysisResult || !prompt || isImproving) return;
+
+    setIsImproving(true);
+    setImprovementError(null);
+    setImprovementResult(null);
+
+    try {
+      const dominantDimension = analysisResult.topDimensions[0];
+      
+      const response = await fetch('/api/improve-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          originalPrompt: prompt,
+          dominantDimension 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error mejorando el prompt');
+      }
+
+      setImprovementResult(data);
+      setShowImprovement(true);
+    } catch (err: any) {
+      setImprovementError(err.message || 'Error conectando con el servidor');
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
+  // Función para copiar texto al clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Aquí podrías agregar una notificación de éxito
+    } catch (err) {
+      console.error('Error copiando al clipboard:', err);
     }
   };
 
@@ -394,12 +458,55 @@ También puedes arrastrar un archivo .txt aquí ↓"
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                 )}
               </button>
+
+              {/* Botón Mejorar Prompt - Solo aparece después del análisis */}
+              <AnimatePresence>
+                {analysisResult && (
+                  <motion.button 
+                    onClick={handleImprovePrompt}
+                    disabled={isImproving}
+                    className={`w-full relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-xl shadow-lg overflow-hidden group transition-all duration-300 ${
+                      !isImproving
+                        ? 'bg-gradient-to-r from-[#1a4fed] to-[#4169ff] text-white hover:shadow-xl hover:-translate-y-1 cursor-pointer'
+                        : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 cursor-not-allowed'
+                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                  >
+                    {/* Contenido del botón */}
+                    <div className="relative flex items-center space-x-3">
+                      {isImproving ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-5 w-5" />
+                      )}
+                      <span>
+                        {isImproving 
+                          ? 'Mejorando...' 
+                          : '✨ Mejora tu Prompt'
+                        }
+                      </span>
+                    </div>
+                    
+                    {/* Efecto de brillo para estado activo */}
+                    {!isImproving && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    )}
+                  </motion.button>
+                )}
+              </AnimatePresence>
               
               <p className="text-sm text-[#8f8989] font-medium text-center">
                 {error ? (
                   <span className="text-red-500">{error}</span>
+                ) : improvementError ? (
+                  <span className="text-red-500">{improvementError}</span>
                 ) : isAnalyzing ? (
                   'Procesando con IA...'
+                ) : isImproving ? (
+                  'Mejorando tu prompt...'
                 ) : isValidPrompt ? (
                   '¡Tu prompt está listo para ser analizado!'
                 ) : (
@@ -506,6 +613,92 @@ También puedes arrastrar un archivo .txt aquí ↓"
           </div>
 
         </div>
+
+        {/* Sección de Mejora de Prompt */}
+        <AnimatePresence>
+          {improvementResult && (
+            <motion.div
+              className="mt-12 max-w-7xl mx-auto"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-gray-200/50">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-[#1a4fed]/20 to-[#cdff07]/20 flex items-center justify-center">
+                      <Wand2 className="h-6 w-6 text-[#1a4fed]" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-[#141414]">Prompt Mejorado</h3>
+                      <p className="text-sm text-[#8f8989]">Optimizado desde la perspectiva de {improvementResult.dominantDimension}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowImprovement(!showImprovement)}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    {showImprovement ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+                </div>
+
+                <AnimatePresence>
+                  {showImprovement && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Prompt Original */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-[#8f8989]">Antes</h4>
+                            <button
+                              onClick={() => copyToClipboard(improvementResult.originalPrompt)}
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Copiar prompt original"
+                            >
+                              <Copy className="h-4 w-4 text-[#8f8989]" />
+                            </button>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                            <p className="text-sm text-[#141414] leading-relaxed">
+                              {improvementResult.originalPrompt}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Prompt Mejorado */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-[#1a4fed]">Después</h4>
+                            <button
+                              onClick={() => copyToClipboard(improvementResult.improvedPrompt)}
+                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Copiar prompt mejorado"
+                            >
+                              <Copy className="h-4 w-4 text-[#1a4fed]" />
+                            </button>
+                          </div>
+                          <div className="bg-gradient-to-br from-[#1a4fed]/5 to-[#cdff07]/5 rounded-xl p-4 border border-[#1a4fed]/20">
+                            <p className="text-sm text-[#141414] leading-relaxed">
+                              {improvementResult.improvedPrompt}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </main>
 
       {/* Elementos decorativos de fondo */}
