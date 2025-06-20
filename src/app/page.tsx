@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, 
@@ -21,7 +21,9 @@ import {
   Shield,
   CheckCircle
 } from 'lucide-react';
-import { TrendAnalysis, AnalysisState, UploadState } from '@/types/analysis';
+import { TrendAnalysis, AnalysisState, UploadState, AnalysisHistoryItem } from '@/types/analysis';
+import { saveAnalysis, getAnalysisHistory, getAnalysisById } from '@/lib/database';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function Home() {
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -36,6 +38,36 @@ export default function Home() {
     result: null,
     error: null
   });
+
+  const [analysisHistory, setAnalysisHistory] = useState<AnalysisHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Cargar historial al inicializar
+  useEffect(() => {
+    loadAnalysisHistory();
+  }, []);
+
+  const loadAnalysisHistory = async () => {
+    setLoadingHistory(true);
+    const result = await getAnalysisHistory();
+    if (result.success && result.data) {
+      setAnalysisHistory(result.data);
+    } else {
+      setAnalysisHistory([]);
+    }
+    setLoadingHistory(false);
+  };
+
+  const loadAnalysisFromHistory = async (id: string) => {
+    const result = await getAnalysisById(id);
+    if (result.success) {
+      setAnalysisState({
+        isLoading: false,
+        result: result.data.analysis_data,
+        error: null
+      });
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -113,6 +145,22 @@ export default function Home() {
 
       const result: TrendAnalysis = await response.json();
       setAnalysisState({ isLoading: false, result, error: null });
+      
+      // Guardar análisis en Supabase (solo si está configurado)
+      try {
+        const title = result.metadata.sourceName || 'Análisis sin título';
+        const sourceUrl = url || null;
+        const saveResult = await saveAnalysis(title, sourceUrl, result);
+        
+        if (saveResult.success) {
+          // Actualizar historial
+          loadAnalysisHistory();
+        } else if (saveResult.error !== 'Supabase no configurado') {
+          console.warn('No se pudo guardar el análisis:', saveResult.error);
+        }
+      } catch (error) {
+        console.warn('Error al intentar guardar en Supabase:', error);
+      }
       
     } catch (error) {
       console.error('Error analyzing content:', error);
@@ -282,24 +330,41 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Historial Simple */}
+          {/* Historial Real */}
           <div>
             <h4 className="text-sm font-semibold text-slate-300 mb-3">Historial Reciente</h4>
-            <div className="space-y-2">
-              {analysisState.result && (
-                <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="w-3 h-3 text-[#00ff88]" />
-                    <span className="text-xs text-slate-300">Último análisis</span>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {loadingHistory ? (
+                <div className="p-3 bg-slate-800/20 rounded-lg border border-slate-700/30 text-center">
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-slate-500" />
+                  <p className="text-xs text-slate-500">Cargando historial...</p>
+                </div>
+              ) : analysisHistory.length > 0 ? (
+                analysisHistory.map((analysis) => (
+                  <div 
+                    key={analysis.id}
+                    onClick={() => loadAnalysisFromHistory(analysis.id)}
+                    className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/50 cursor-pointer hover:bg-slate-700/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="w-3 h-3 text-[#00ff88]" />
+                      <span className="text-xs text-slate-300 truncate">{analysis.title}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {new Date(analysis.created_at).toLocaleDateString('es-ES')}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-400 truncate">
-                    {analysisState.result.metadata.sourceName}
-                  </p>
+                ))
+              ) : !isSupabaseConfigured ? (
+                <div className="p-3 bg-amber-900/20 rounded-lg border border-amber-500/30 text-center">
+                  <p className="text-xs text-amber-300">Configura Supabase para persistencia</p>
+                  <p className="text-xs text-amber-500 mt-1">Ver SUPABASE_SETUP.md</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-800/20 rounded-lg border border-slate-700/30 text-center">
+                  <p className="text-xs text-slate-500">No hay análisis previos</p>
                 </div>
               )}
-              <div className="p-3 bg-slate-800/20 rounded-lg border border-slate-700/30 text-center">
-                <p className="text-xs text-slate-500">Historial completo próximamente</p>
-              </div>
             </div>
           </div>
         </div>
@@ -373,144 +438,253 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Target className="w-6 h-6 text-[#00ff88]" />
-                      <h3 className="text-lg font-semibold text-white">Probabilidad de Impacto</h3>
+                {/* KPIs Grid - 8 KPIs según metodología */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Probabilidad Impacto</h4>
                     </div>
-                    <div className="text-center">
-                      <div className="text-4xl font-bold mb-2 text-[#00ff88]">
-                        {analysisState.result.kpis.impactProbability}%
-                      </div>
-                      <div className="w-full bg-slate-700 rounded-full h-3">
-                        <motion.div
-                          className="bg-gradient-to-r from-[#00ff88] to-[#00d4ff] h-3 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${analysisState.result.kpis.impactProbability}%` }}
-                          transition={{ duration: 1, delay: 0.5 }}
-                        />
-                      </div>
-                    </div>
+                    <div className="text-2xl font-bold text-[#00ff88]">{analysisState.result.kpis.probabilidad_impacto}%</div>
                   </div>
 
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Clock className="w-6 h-6 text-[#00d4ff]" />
-                      <h3 className="text-lg font-semibold text-white">Velocidad de Propagación</h3>
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Velocidad Propagación</h4>
                     </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <span className="text-4xl font-bold text-[#00d4ff]">
-                          {analysisState.result.kpis.propagationSpeed}
-                        </span>
-                        <span className="text-lg text-slate-300">días</span>
-                      </div>
-                    </div>
+                    <div className="text-2xl font-bold text-[#00d4ff]">{analysisState.result.kpis.velocidad_propagacion}</div>
                   </div>
 
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Shield className="w-6 h-6 text-[#00ff88]" />
-                      <h3 className="text-lg font-semibold text-white">Índice de Credibilidad</h3>
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Shield className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Credibilidad</h4>
                     </div>
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-[#00ff88] mb-2">
-                        {analysisState.result.kpis.credibilityIndex}<span className="text-lg text-slate-300">/100</span>
-                      </div>
-                      <div className="flex items-center justify-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-[#00ff88]" />
-                        <span className="text-sm text-slate-300">Fuente verificada</span>
-                      </div>
+                    <div className="text-2xl font-bold text-[#00ff88]">{analysisState.result.kpis.indice_credibilidad}/100</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Madurez</h4>
                     </div>
+                    <div className="text-2xl font-bold text-[#00d4ff]">{analysisState.result.kpis.madurez_tecnologica}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Globe className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Cobertura</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00ff88]">{analysisState.result.kpis.cobertura_geografica}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BarChart3 className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Sectores</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00d4ff]">{analysisState.result.kpis.sectores_afectados_count}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Inversión</h4>
+                    </div>
+                    <div className="text-lg font-bold text-[#00ff88]">{analysisState.result.kpis.inversion_asociada}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Activity className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Potencial</h4>
+                    </div>
+                    <div className="text-lg font-bold text-[#00d4ff]">{analysisState.result.kpis.potencial_disruptivo}</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 8 Secciones de Análisis según metodología */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 1. Resumen Ejecutivo */}
                   <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <Brain className="w-6 h-6 text-[#00ff88]" />
                       <h3 className="text-lg font-semibold text-white">Resumen Ejecutivo</h3>
                     </div>
-                    <p className="text-slate-300 leading-relaxed">{analysisState.result.analysis.executiveSummary}</p>
+                    <div className="space-y-3">
+                      <div><span className="text-slate-400">Concepto:</span> <span className="text-white">{analysisState.result.analisis.resumen_ejecutivo.concepto_principal}</span></div>
+                      <div><span className="text-slate-400">Impacto:</span> <span className="text-[#00ff88]">{analysisState.result.analisis.resumen_ejecutivo.puntuacion_impacto}/10</span></div>
+                      <div><span className="text-slate-400">Adopción:</span> <span className="text-[#00d4ff]">{analysisState.result.analisis.resumen_ejecutivo.tiempo_adopcion}</span></div>
+                      <div className="flex flex-wrap gap-2">
+                        {analysisState.result.analisis.resumen_ejecutivo.palabras_clave.map((palabra, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-slate-700/50 rounded text-xs text-slate-300">{palabra}</span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
+                  {/* 2. Perfilación Criminal */}
                   <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <Target className="w-6 h-6 text-[#00d4ff]" />
                       <h3 className="text-lg font-semibold text-white">Perfilación Criminal</h3>
                     </div>
-                    <p className="text-slate-300 leading-relaxed">{analysisState.result.analysis.criminalProfileAnalysis}</p>
-                  </div>
-
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <TrendingUp className="w-6 h-6 text-[#00ff88]" />
-                      <h3 className="text-lg font-semibold text-white">Patrones Emergentes</h3>
-                    </div>
-                    <p className="text-slate-300 leading-relaxed">{analysisState.result.analysis.emergingPatterns}</p>
-                  </div>
-
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Globe className="w-6 h-6 text-[#00d4ff]" />
-                      <h3 className="text-lg font-semibold text-white">Proyecciones Futuras</h3>
-                    </div>
-                    <p className="text-slate-300 leading-relaxed">{analysisState.result.analysis.futureProjections}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <BarChart3 className="w-6 h-6 text-[#00ff88]" />
-                      <h3 className="text-lg font-semibold text-white">Sectores Afectados</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {analysisState.result.impact.affectedSectors.map((sector, index) => (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg">
-                          <div className="w-2 h-2 bg-[#00ff88] rounded-full" />
-                          <span className="text-slate-300">{sector}</span>
-                        </div>
-                      ))}
+                    <div className="space-y-3 text-sm">
+                      <div><span className="text-slate-400 font-medium">Evidencia:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.perfilacion_criminal.patron_evidencia}</p></div>
+                      <div><span className="text-slate-400 font-medium">Modus Operandi:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.perfilacion_criminal.modus_operandi}</p></div>
                     </div>
                   </div>
 
+                  {/* 3. Análisis Geográfico */}
                   <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <MapPin className="w-6 h-6 text-[#00d4ff]" />
-                      <h3 className="text-lg font-semibold text-white">Relevancia Geográfica</h3>
+                      <MapPin className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Análisis Geográfico</h3>
                     </div>
                     <div className="space-y-3">
+                      <div><span className="text-slate-400">Epicentro:</span> <span className="text-[#00ff88]">{analysisState.result.analisis.analisis_geografico.epicentro}</span></div>
                       <div>
-                        <span className="text-sm text-slate-400">Principal:</span>
-                        <p className="text-[#00d4ff] font-semibold">{analysisState.result.impact.geographicRelevance.primary}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-slate-400">Secundarias:</span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {analysisState.result.impact.geographicRelevance.secondary.map((region, index) => (
-                            <span key={index} className="text-xs bg-slate-700/50 px-2 py-1 rounded text-slate-300">
-                              {region}
-                            </span>
+                        <span className="text-slate-400">Adopción:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.analisis.analisis_geografico.zonas_adopcion.map((zona, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-green-900/20 border border-green-500/30 rounded text-xs text-green-300">{zona}</span>
                           ))}
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* 4. Proyecciones Futuras */}
                   <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <Users className="w-6 h-6 text-[#00ff88]" />
-                      <h3 className="text-lg font-semibold text-white">Demografía Objetivo</h3>
+                      <TrendingUp className="w-6 h-6 text-[#00d4ff]" />
+                      <h3 className="text-lg font-semibold text-white">Proyecciones Futuras</h3>
                     </div>
-                    <div className="space-y-2">
-                      {analysisState.result.impact.demographicTargets.map((target, index) => (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg">
-                          <Users className="w-4 h-4 text-[#00d4ff]" />
-                          <span className="text-slate-300">{target}</span>
+                    <div className="space-y-3 text-sm">
+                      <div><span className="text-green-400 font-medium">Optimista:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.proyecciones_futuras.escenario_optimista}</p></div>
+                      <div><span className="text-slate-400 font-medium">Realista:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.proyecciones_futuras.escenario_realista}</p></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags y Recomendaciones según nueva estructura */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 5. Tags y Conexiones */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Activity className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Tags y Conexiones</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Primarios:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.conexiones.tags_primarios.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-[#00ff88]/20 border border-[#00ff88]/30 rounded text-xs text-[#00ff88]">{tag}</span>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Tecnologías:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.conexiones.tags_secundarios.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-[#00d4ff]/20 border border-[#00d4ff]/30 rounded text-xs text-[#00d4ff]">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Impacto:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.conexiones.tags_impacto.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-amber-900/20 border border-amber-500/30 rounded text-xs text-amber-300">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. Sectores Objetivo */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <BarChart3 className="w-6 h-6 text-[#00d4ff]" />
+                      <h3 className="text-lg font-semibold text-white">Sectores Objetivo</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Macro Sectores:</span>
+                        <div className="space-y-2 mt-2">
+                          {analysisState.result.impacto.macro_sectores.map((sector, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg">
+                              <div className="w-2 h-2 bg-[#00d4ff] rounded-full" />
+                              <span className="text-slate-300 text-sm">{sector}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Sectores Específicos:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.impacto.sectores_afectados.map((sector, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-slate-700/50 rounded text-xs text-slate-300">{sector}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 7. Recomendaciones Estratégicas */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 lg:col-span-2">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Shield className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Recomendaciones Estratégicas</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-[#00ff88] mb-2">Para Inversores</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_inversores.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-[#00ff88] rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-[#00d4ff] mb-2">Para Empresas</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_empresas.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-[#00d4ff] rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-400 mb-2">Para Reguladores</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_reguladores.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-amber-400 rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-purple-400 mb-2">Para Sociedad</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_sociedad.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-purple-400 rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
