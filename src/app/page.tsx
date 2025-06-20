@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp, Users, Eye, Lightbulb } from "lucide-react";
+import { Brain, Sparkles, Zap, Upload, FileText, Loader2, BarChart3, Wand2, Copy, ChevronDown, ChevronUp, Users, Eye, Lightbulb, Bot, Star } from "lucide-react";
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 
@@ -31,6 +31,21 @@ interface PerspectivesResult {
   perspectives: PerspectiveResult[];
   originalPrompt: string;
   dominantDimension: string;
+}
+
+interface TeamMember {
+  name: string;
+  dimension: string;
+  label: string;
+  description: string;
+  prompt_ready_to_use: string;
+  emoji: string;
+}
+
+interface TeamResult {
+  teamMembers: TeamMember[];
+  originalPrompt: string;
+  lowestDimensions: string[];
 }
 
 // Componente para contador animado
@@ -149,6 +164,12 @@ export default function Home() {
   const [perspectivesResult, setPerspectivesResult] = useState<PerspectivesResult | null>(null);
   const [perspectivesError, setPerspectivesError] = useState<string | null>(null);
   
+  // Estados para equipo ideal de IA
+  const [isGeneratingTeam, setIsGeneratingTeam] = useState(false);
+  const [teamResult, setTeamResult] = useState<TeamResult | null>(null);
+  const [teamError, setTeamError] = useState<string | null>(null);
+  const [expandedPrompts, setExpandedPrompts] = useState<Record<string, boolean>>({});
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const minChars = 50;
@@ -199,6 +220,7 @@ export default function Home() {
     if (improvementResult) setImprovementResult(null);
     if (showImprovement) setShowImprovement(false);
     if (perspectivesResult) setPerspectivesResult(null);
+    if (teamResult) setTeamResult(null);
   };
 
   // Función para analizar el prompt
@@ -307,6 +329,45 @@ export default function Home() {
     } finally {
       setIsGeneratingPerspectives(false);
     }
+  };
+
+  const handleGenerateTeam = async () => {
+    if (!analysisResult || !prompt) return;
+
+    setIsGeneratingTeam(true);
+    setTeamError(null);
+
+    try {
+      const response = await fetch('/api/generate-team', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dimensions: analysisResult.dimensions,
+          originalPrompt: prompt,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error generando equipo ideal');
+      }
+
+      setTeamResult(data);
+    } catch (err: any) {
+      setTeamError(err.message || 'Error conectando con el servidor');
+    } finally {
+      setIsGeneratingTeam(false);
+    }
+  };
+
+  const togglePromptExpansion = (assistantName: string) => {
+    setExpandedPrompts(prev => ({
+      ...prev,
+      [assistantName]: !prev[assistantName]
+    }));
   };
 
   // Función para copiar texto al clipboard
@@ -594,6 +655,45 @@ También puedes arrastrar un archivo .txt aquí ↓"
                   </motion.button>
                 )}
               </AnimatePresence>
+
+              {/* Botón Equipo Ideal de IA - Solo aparece después del análisis */}
+              <AnimatePresence>
+                {analysisResult && (
+                  <motion.button 
+                    onClick={handleGenerateTeam}
+                    disabled={isGeneratingTeam}
+                    className={`w-full relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-xl shadow-lg overflow-hidden group transition-all duration-300 ${
+                      !isGeneratingTeam
+                        ? 'bg-gradient-to-r from-[#10b981] to-[#059669] text-white hover:shadow-xl hover:-translate-y-1 cursor-pointer'
+                        : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 cursor-not-allowed'
+                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5, delay: 0.9 }}
+                  >
+                    {/* Contenido del botón */}
+                    <div className="relative flex items-center space-x-3">
+                      {isGeneratingTeam ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Bot className="h-5 w-5" />
+                      )}
+                      <span>
+                        {isGeneratingTeam 
+                          ? 'Creando...' 
+                          : '🤖 Tu Equipo Ideal de IA'
+                        }
+                      </span>
+                    </div>
+                    
+                    {/* Efecto de brillo para estado activo */}
+                    {!isGeneratingTeam && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    )}
+                  </motion.button>
+                )}
+              </AnimatePresence>
               
               <p className="text-sm text-[#8f8989] font-medium text-center">
                 {error ? (
@@ -602,12 +702,16 @@ También puedes arrastrar un archivo .txt aquí ↓"
                   <span className="text-red-500">{improvementError}</span>
                 ) : perspectivesError ? (
                   <span className="text-red-500">{perspectivesError}</span>
+                ) : teamError ? (
+                  <span className="text-red-500">{teamError}</span>
                 ) : isAnalyzing ? (
                   'Procesando con IA...'
                 ) : isImproving ? (
                   'Mejorando tu prompt...'
                 ) : isGeneratingPerspectives ? (
                   'Generando perspectivas diversas...'
+                ) : isGeneratingTeam ? (
+                  'Creando tu equipo ideal de IA...'
                 ) : isValidPrompt ? (
                   '¡Tu prompt está listo para ser analizado!'
                 ) : (
@@ -890,6 +994,150 @@ También puedes arrastrar un archivo .txt aquí ↓"
                         <Users className="h-3.5 w-3.5 text-[#8b5cf6]" />
                         <p className="text-xs text-[#8b5cf6] font-medium">
                           Complementarias a tu perfil {perspectivesResult.dominantDimension}
+                        </p>
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Sección de Equipo Ideal de IA - Integrada en Columna Derecha */}
+            <AnimatePresence>
+              {teamResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -30 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-gray-200/50">
+                    {/* Header de la sección */}
+                    <div className="text-center mb-6">
+                      <div className="flex items-center justify-center space-x-3 mb-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#10b981]/20 to-[#059669]/20 flex items-center justify-center">
+                          <Bot className="h-5 w-5 text-[#10b981]" />
+                        </div>
+                        <h4 className="text-lg font-bold text-[#141414]">🤖 Tu Equipo Ideal de IA</h4>
+                      </div>
+                      <p className="text-sm text-[#8f8989] mb-1">Asistentes especializados para complementar tu perfil</p>
+                      <p className="text-xs text-[#8f8989]">Fortalece tus dimensiones más bajas: {teamResult.lowestDimensions.join(', ')}</p>
+                    </div>
+
+                    {/* Grid de Asistentes de IA */}
+                    <div className="space-y-4">
+                      {teamResult.teamMembers.map((assistant, index) => (
+                        <motion.div
+                          key={assistant.name}
+                          className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-4 border border-gray-200/50 shadow-md hover:shadow-lg transition-all duration-300"
+                          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ 
+                            duration: 0.4, 
+                            delay: index * 0.1,
+                            type: "spring",
+                            stiffness: 200 
+                          }}
+                        >
+                          {/* Header de la card */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#10b981]/20 to-[#059669]/20 flex items-center justify-center">
+                                <span className="text-lg">{assistant.emoji || '🤖'}</span>
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-[#141414] text-sm">{assistant.name}</h5>
+                                <p className="text-[#10b981] font-semibold text-xs">Especialista en {assistant.label}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Star className="h-3.5 w-3.5 text-[#cdff07] fill-current" />
+                              <span className="text-xs text-[#8f8989] font-medium">IA</span>
+                            </div>
+                          </div>
+
+                          {/* Descripción del asistente */}
+                          <div className="mb-3">
+                            <p className="text-xs text-[#141414] leading-relaxed">
+                              {assistant.description}
+                            </p>
+                          </div>
+
+                          {/* Botones de acción */}
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => togglePromptExpansion(assistant.name)}
+                              className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-[#10b981]/10 to-[#059669]/10 rounded-lg border border-[#10b981]/20 hover:from-[#10b981]/20 hover:to-[#059669]/20 transition-all duration-200"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-[#10b981]" />
+                              <span className="text-xs font-medium text-[#10b981]">
+                                {expandedPrompts[assistant.name] ? 'Ocultar' : 'Ver'} Prompt
+                              </span>
+                              {expandedPrompts[assistant.name] ? 
+                                <ChevronUp className="h-3.5 w-3.5 text-[#10b981]" /> : 
+                                <ChevronDown className="h-3.5 w-3.5 text-[#10b981]" />
+                              }
+                            </button>
+                            <button
+                              onClick={() => copyToClipboard(assistant.prompt_ready_to_use)}
+                              className="px-3 py-2 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors"
+                              title="Copiar prompt del asistente"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Prompt expandible */}
+                          <AnimatePresence>
+                            {expandedPrompts[assistant.name] && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h6 className="font-semibold text-[#10b981] text-xs">Prompt listo para usar:</h6>
+                                    <button
+                                      onClick={() => copyToClipboard(assistant.prompt_ready_to_use)}
+                                      className="p-1 hover:bg-green-50 rounded transition-colors"
+                                      title="Copiar prompt completo"
+                                    >
+                                      <Copy className="h-3 w-3 text-[#10b981]" />
+                                    </button>
+                                  </div>
+                                  <div className="bg-gradient-to-br from-[#10b981]/5 to-[#059669]/5 rounded-lg p-3 border border-[#10b981]/20">
+                                    <p className="text-xs text-[#141414] leading-relaxed whitespace-pre-wrap">
+                                      {assistant.prompt_ready_to_use}
+                                    </p>
+                                  </div>
+                                  <div className="mt-2 flex items-center space-x-2">
+                                    <div className="flex items-center space-x-1">
+                                      <div className="h-2 w-2 rounded-full bg-[#10b981]"></div>
+                                      <span className="text-xs text-[#8f8989]">Copia y pega en ChatGPT o Claude</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Footer informativo */}
+                    <motion.div 
+                      className="mt-4 text-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-[#10b981]/10 to-[#059669]/10 rounded-full px-3 py-1.5 border border-[#10b981]/20">
+                        <Bot className="h-3.5 w-3.5 text-[#10b981]" />
+                        <p className="text-xs text-[#10b981] font-medium">
+                          Asistentes personalizados para tus dimensiones más bajas
                         </p>
                       </div>
                     </motion.div>
