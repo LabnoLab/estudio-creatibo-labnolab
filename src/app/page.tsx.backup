@@ -769,8 +769,8 @@ export default function Home() {
                   </div>
                 </div>
               </motion.div>
-            )
-          ) : (
+              ) : null
+            ) : (
               // Vista de Red de Conexiones
               <motion.div
                 key="network"

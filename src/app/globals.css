@@ -94,3 +94,71 @@ body {
   color: #94a3b8 !important;
   border-radius: 4px !important;
 }
+
+/* Estilos adicionales para el grafo de red */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* Animaciones para nodos del grafo */
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+}
+
+.network-node:hover {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Estilos para las tabs de navegación */
+.tab-active {
+  position: relative;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00ff88, #00d4ff);
+}
+
+/* Scroll personalizado para el sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: rgba(51, 65, 85, 0.3);
+  border-radius: 2px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 136, 0.3);
+  border-radius: 2px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 136, 0.5);
+}
+
+/* Transiciones suaves para cambios de estado */
+.transition-glow {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+/* Efectos para enlaces SVG en el grafo */
+.network-link {
+  transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
+}
+
+.network-link:hover {
+  stroke-opacity: 1 !important;
+  stroke-width: 3px !important;
+}
