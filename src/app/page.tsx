@@ -202,60 +202,54 @@ export default function HubCentralPage() {
             whileHover={{ y: -8, scale: 1.02 }}
             className="group"
           >
-            <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 cursor-pointer relative">
-              {/* Coming Soon Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-black/80 to-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
-                <div className="text-center">
-                  <Timer className="w-12 h-12 text-white mx-auto mb-3" />
-                  <span className="text-white font-medium text-lg">Próximamente</span>
+            <Link href="/teambuilding">
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 cursor-pointer">
+                <div className="p-8">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Users className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="flex items-center space-x-2 text-purple-600 group-hover:translate-x-1 transition-transform">
+                      <span className="text-sm font-medium">Conectar</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-3">Team Building</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    Herramientas para fortalecer equipos, dinámicas colaborativas 
+                    y metodologías innovadoras de trabajo en grupo.
+                  </p>
+
+                  {/* Preview Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">7</div>
+                      <div className="text-xs text-gray-500">Equipos</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-pink-600">12</div>
+                      <div className="text-xs text-gray-500">Análisis</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-indigo-600">24</div>
+                      <div className="text-xs text-gray-500">Sesiones</div>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                      Activo
+                    </span>
+                    <span className="text-xs text-gray-400">Última actividad: hoy</span>
+                  </div>
                 </div>
               </div>
-
-              <div className="p-8 opacity-50">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Users className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex items-center space-x-2 text-purple-600 group-hover:translate-x-1 transition-transform">
-                    <span className="text-sm font-medium">Conectar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-
-                {/* Content */}
-                <h3 className="text-2xl font-semibold text-gray-900 mb-3">Team Building</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Herramientas para fortalecer equipos, dinámicas colaborativas 
-                  y metodologías innovadoras de trabajo en grupo.
-                </p>
-
-                {/* Preview Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">0</div>
-                    <div className="text-xs text-gray-500">Equipos</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-pink-600">0</div>
-                    <div className="text-xs text-gray-500">Dinámicas</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">0</div>
-                    <div className="text-xs text-gray-500">Sesiones</div>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-                    Planificando
-                  </span>
-                  <span className="text-xs text-gray-400">Lanzamiento Q2 2025</span>
-                </div>
-              </div>
-            </div>
+            </Link>
           </motion.div>
         </motion.div>
 
@@ -282,7 +276,7 @@ export default function HubCentralPage() {
               <div className="w-12 h-12 bg-gradient-to-br from-[#E55A2B] to-[#D4502A] rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FolderOpen className="w-6 h-6 text-white" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">32</div>
+              <div className="text-3xl font-bold text-gray-900 mb-2">43</div>
               <div className="text-sm text-gray-600 font-medium">Proyectos Totales</div>
             </motion.div>
 
@@ -294,8 +288,8 @@ export default function HubCentralPage() {
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">8</div>
-              <div className="text-sm text-gray-600 font-medium">Tendencias Analizadas</div>
+              <div className="text-3xl font-bold text-gray-900 mb-2">19</div>
+              <div className="text-sm text-gray-600 font-medium">Equipos Generados</div>
             </motion.div>
 
             <motion.div 
@@ -341,6 +335,20 @@ export default function HubCentralPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-8">
               <div className="space-y-6">
+                <motion.div 
+                  className="flex items-center space-x-4"
+                  variants={itemVariants}
+                >
+                  <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-900 font-medium">Equipo de IA de 3 miembros generado exitosamente</p>
+                    <p className="text-sm text-gray-500">Team Building • Hace 30 minutos</p>
+                  </div>
+                  <span className="text-xs text-gray-400">16:15</span>
+                </motion.div>
+
                 <motion.div 
                   className="flex items-center space-x-4"
                   variants={itemVariants}

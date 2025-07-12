@@ -23,7 +23,7 @@ const navigation = [
   { name: 'Hub Central', href: '/', icon: Home },
   { name: 'Estudio Creativo', href: '/referencias', icon: Palette },
   { name: 'Radar de Futuros', href: '/radar', icon: TrendingUp },
-  { name: 'Team Building', href: '/teambuilding', icon: Users, comingSoon: true },
+  { name: 'Team Building', href: '/teambuilding', icon: Users },
 ]
 
 // Función para generar breadcrumbs
