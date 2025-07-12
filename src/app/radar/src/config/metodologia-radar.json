@@ -1,0 +1,150 @@
+{
+  "metodologia": {
+    "version": "1.0",
+    "nombre": "Radar de Futuros LabnoLab",
+    "descripcion": "Metodología de análisis criminal aplicada a tendencias emergentes",
+    "creado": "2024"
+  },
+  "kpis": {
+    "probabilidad_impacto": {
+      "nombre": "Probabilidad de Impacto",
+      "rango": "0-100%",
+      "descripcion": "Basado en evidencia, adopción, inversión"
+    },
+    "velocidad_propagacion": {
+      "nombre": "Velocidad de Propagación", 
+      "unidad": "días/meses/años",
+      "descripcion": "Tiempo para adopción masiva"
+    },
+    "indice_credibilidad": {
+      "nombre": "Índice de Credibilidad",
+      "rango": "0-100",
+      "descripcion": "Fuentes, evidencia, coherencia"
+    },
+    "madurez_tecnologica": {
+      "nombre": "Madurez Tecnológica",
+      "niveles": ["Concepto", "Prototipo", "Piloto", "Escalable", "Masivo"]
+    },
+    "cobertura_geografica": {
+      "nombre": "Cobertura Geográfica",
+      "niveles": ["Local", "Regional", "Nacional", "Global"]
+    },
+    "sectores_afectados": {
+      "nombre": "Sectores Afectados",
+      "descripcion": "Número y tipo de industrias impactadas"
+    },
+    "inversion_asociada": {
+      "nombre": "Inversión Asociada",
+      "descripcion": "Volumen de funding/inversión detectado"
+    },
+    "potencial_disruptivo": {
+      "nombre": "Potencial Disruptivo",
+      "niveles": ["Incremental", "Significativo", "Transformacional"]
+    }
+  },
+  "secciones_analisis": {
+    "resumen_ejecutivo": {
+      "nombre": "Resumen Ejecutivo",
+      "componentes": [
+        "Concepto principal en una frase",
+        "Puntuación de impacto general (1-10)",
+        "Tiempo estimado para adopción masiva",
+        "Palabras clave principales"
+      ]
+    },
+    "perfilacion_criminal": {
+      "nombre": "Perfilación Criminal",
+      "descripcion": "Análisis metodológico aplicando técnicas investigativas",
+      "componentes": [
+        "Patrón de evidencia",
+        "Modus operandi", 
+        "Perfil de adopción",
+        "Conexiones ocultas"
+      ]
+    },
+    "kpis_cuantitativos": {
+      "nombre": "KPIs Cuantitativos",
+      "metricas": "Todos los KPIs principales con valores específicos"
+    },
+    "analisis_geografico": {
+      "nombre": "Análisis Geográfico",
+      "componentes": [
+        "Epicentro",
+        "Zonas de adopción",
+        "Resistencias", 
+        "Oportunidades de expansión"
+      ]
+    },
+    "conexiones_etiquetas": {
+      "nombre": "Conexiones y Etiquetas",
+      "tipos": [
+        "Tags Primarios (Sector principal)",
+        "Tags Secundarios (Tecnología subyacente)",
+        "Tags de Impacto",
+        "Tags Geográficos"
+      ]
+    },
+    "sectores_objetivo": {
+      "nombre": "Sectores Objetivo",
+      "macro_sectores": [
+        "Innovación Empresarial",
+        "Servicios Financieros",
+        "Capital Humano", 
+        "Tecnología y Seguridad",
+        "Innovación Socioeconómica"
+      ]
+    },
+    "proyecciones_futuras": {
+      "nombre": "Proyecciones Futuras",
+      "escenarios": [
+        "Escenario optimista",
+        "Escenario pesimista", 
+        "Escenario realista",
+        "Triggers de aceleración"
+      ]
+    },
+    "recomendaciones_estrategicas": {
+      "nombre": "Recomendaciones Estratégicas",
+      "destinatarios": [
+        "Para inversores",
+        "Para empresas",
+        "Para reguladores",
+        "Para sociedad"
+      ]
+    }
+  },
+  "sistema_tags": {
+    "primarios": [
+      "Fintech", "Healthcare", "EdTech", "CleanTech", "RetailTech", "PropTech"
+    ],
+    "secundarios": [
+      "AI", "Blockchain", "IoT", "AR/VR", "5G", "Quantum", "Robotics"
+    ],
+    "impacto": [
+      "Social", "Económico", "Ambiental", "Político", "Cultural"
+    ],
+    "geograficos": [
+      "Europa", "Norteamérica", "Asia", "Latinoamérica", "África", "Oceanía"
+    ]
+  },
+  "criterios_calidad": {
+    "fuentes_minimas": 3,
+    "evidencia_cuantitativa": true,
+    "cross_validation": true,
+    "metodologia_criminal": true
+  },
+  "componentes_visuales": {
+    "mapa_geografico": {
+      "epicentros": true,
+      "propagacion": true,
+      "intensidad_color": true,
+      "timeline": true
+    },
+    "grafo_conexiones": {
+      "nodos_tendencias": true,
+      "relaciones": true,
+      "clustering": true,
+      "evolucion_temporal": true
+    }
+  }
+} 

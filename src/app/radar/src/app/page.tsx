@@ -1,0 +1,804 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Upload, 
+  TrendingUp, 
+  Globe, 
+  FileText, 
+  Link, 
+  BarChart3,
+  MapPin,
+  Brain,
+  Target,
+  Activity,
+  Users,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Clock,
+  Shield,
+  CheckCircle,
+  Network
+} from 'lucide-react';
+import { TrendAnalysis, AnalysisState, UploadState, AnalysisHistoryItem } from '@/types/analysis';
+import { saveAnalysis, getAnalysisHistory, getAnalysisById } from '@/lib/database';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
+
+// Imports dinámicos para componentes
+const TrendMap = dynamic(() => import('@/components/TrendMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] bg-slate-900/50 rounded-lg flex items-center justify-center border border-slate-700/30">
+      <div className="text-center">
+        <div className="w-8 h-8 text-slate-500 mx-auto mb-2 animate-spin border-2 border-slate-500 border-t-transparent rounded-full"></div>
+        <p className="text-sm text-slate-500">Cargando mapa geográfico...</p>
+      </div>
+    </div>
+  )
+});
+
+const NetworkGraph = dynamic(() => import('@/components/NetworkGraph'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-[600px] bg-slate-900/50 rounded-lg flex items-center justify-center border border-slate-700/30">
+      <div className="text-center">
+        <div className="w-8 h-8 text-slate-500 mx-auto mb-2 animate-spin border-2 border-slate-500 border-t-transparent rounded-full"></div>
+        <p className="text-sm text-slate-500">Cargando red de conexiones...</p>
+      </div>
+    </div>
+  )
+});
+
+export default function Home() {
+  const [uploadState, setUploadState] = useState<UploadState>({
+    isDragOver: false,
+    isUploading: false,
+    uploadedFile: null,
+    url: ''
+  });
+
+  const [analysisState, setAnalysisState] = useState<AnalysisState>({
+    isLoading: false,
+    result: null,
+    error: null
+  });
+
+  const [analysisHistory, setAnalysisHistory] = useState<AnalysisHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'network'>('dashboard');
+
+  // Cargar historial al inicializar
+  useEffect(() => {
+    loadAnalysisHistory();
+  }, []);
+
+  const loadAnalysisHistory = async () => {
+    setLoadingHistory(true);
+    const result = await getAnalysisHistory();
+    if (result.success && result.data) {
+      setAnalysisHistory(result.data);
+    } else {
+      setAnalysisHistory([]);
+    }
+    setLoadingHistory(false);
+  };
+
+  const loadAnalysisFromHistory = async (id: string) => {
+    const result = await getAnalysisById(id);
+    if (result.success) {
+      setAnalysisState({
+        isLoading: false,
+        result: result.data.analysis_data,
+        error: null
+      });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setUploadState(prev => ({ ...prev, isDragOver: true }));
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setUploadState(prev => ({ ...prev, isDragOver: false }));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setUploadState(prev => ({ ...prev, isDragOver: false }));
+    
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+    
+    if (file && validateFile(file)) {
+      setUploadState(prev => ({ ...prev, uploadedFile: file }));
+      analyzeContent(file);
+    }
+  };
+
+  const validateFile = (file: File): boolean => {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    if (file.size > maxSize) {
+      setAnalysisState(prev => ({ ...prev, error: 'El archivo no puede superar los 10MB' }));
+      return false;
+    }
+    
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.txt')) {
+      setAnalysisState(prev => ({ ...prev, error: 'Solo se permiten archivos PDF, DOC, DOCX y TXT' }));
+      return false;
+    }
+    
+    return true;
+  };
+
+  const validateURL = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      setAnalysisState(prev => ({ ...prev, error: 'URL no válida' }));
+      return false;
+    }
+  };
+
+  const analyzeContent = async (file?: File, url?: string) => {
+    setAnalysisState({ isLoading: true, result: null, error: null });
+    
+    try {
+      const formData = new FormData();
+      
+      if (file) {
+        formData.append('file', file);
+      } else if (url && validateURL(url)) {
+        formData.append('url', url);
+      } else {
+        throw new Error('No se proporcionó archivo ni URL válida');
+      }
+
+      const response = await fetch('/api/analyze-trend', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error en el análisis');
+      }
+
+      const result: TrendAnalysis = await response.json();
+      setAnalysisState({ isLoading: false, result, error: null });
+      
+      // Guardar análisis en Supabase (solo si está configurado)
+      try {
+        const title = result.metadata.sourceName || 'Análisis sin título';
+        const sourceUrl = url || null;
+        const saveResult = await saveAnalysis(title, sourceUrl, result);
+        
+        if (saveResult.success) {
+          // Actualizar historial
+          loadAnalysisHistory();
+        } else if (saveResult.error !== 'Supabase no configurado') {
+          console.warn('No se pudo guardar el análisis:', saveResult.error);
+        }
+      } catch (error) {
+        console.warn('Error al intentar guardar en Supabase:', error);
+      }
+      
+    } catch (error) {
+      console.error('Error analyzing content:', error);
+      setAnalysisState({
+        isLoading: false,
+        result: null,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  };
+
+  const handleAnalyzeClick = () => {
+    if (uploadState.uploadedFile) {
+      analyzeContent(uploadState.uploadedFile);
+    } else if (uploadState.url) {
+      analyzeContent(undefined, uploadState.url);
+    } else {
+      setAnalysisState(prev => ({ ...prev, error: 'Proporciona un archivo o URL para analizar' }));
+    }
+  };
+
+  const resetAnalysis = () => {
+    setAnalysisState({ isLoading: false, result: null, error: null });
+    setUploadState({ isDragOver: false, isUploading: false, uploadedFile: null, url: '' });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
+      {/* Sidebar */}
+      <div className="w-80 bg-gradient-to-b from-slate-950 to-slate-900 border-r border-slate-700/50 flex flex-col">
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-slate-700/50">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-[#00ff88] to-[#00d4ff] rounded-lg flex items-center justify-center">
+              <Brain className="w-6 h-6 text-slate-900" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">
+                <span className="text-[#00ff88]">LabnoLab</span>
+              </h1>
+              <p className="text-xs text-slate-400">Radar de Futuros</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 text-slate-400 text-sm">
+            <Activity className="w-3 h-3 text-[#00ff88]" />
+            <span>Análisis Criminal de Tendencias</span>
+          </div>
+        </div>
+
+        {/* Upload Zone en Sidebar */}
+        <div className="flex-1 p-6">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Nueva Tendencia</h3>
+            <div
+              className={`
+                relative border-2 border-dashed rounded-xl p-8 transition-all duration-300
+                ${uploadState.isDragOver 
+                  ? 'border-[#00ff88] bg-[#00ff88]/5 glow-green' 
+                  : 'border-slate-600 hover:border-[#00d4ff] hover:bg-[#00d4ff]/5'
+                }
+              `}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="text-center">
+                <motion.div
+                  animate={{ 
+                    y: uploadState.isDragOver ? -5 : 0,
+                    scale: uploadState.isDragOver ? 1.1 : 1 
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  className={`
+                    w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center
+                    ${uploadState.isDragOver 
+                      ? 'bg-[#00ff88]/20 text-[#00ff88]' 
+                      : 'bg-slate-700/50 text-slate-400'
+                    }
+                  `}
+                >
+                  {analysisState.isLoading ? (
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  ) : (
+                    <Upload className="w-8 h-8" />
+                  )}
+                </motion.div>
+                
+                {analysisState.isLoading ? (
+                  <div className="text-slate-400 mb-4">
+                    <p className="text-sm mb-2">Analizando...</p>
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full animate-pulse" />
+                      <div className="w-1.5 h-1.5 bg-[#00d4ff] rounded-full animate-pulse delay-100" />
+                      <div className="w-1.5 h-1.5 bg-[#00ff88] rounded-full animate-pulse delay-200" />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-sm mb-4">
+                    Arrastra archivos o pega URLs
+                  </p>
+                )}
+                
+                {!analysisState.isLoading && (
+                  <>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="https://ejemplo.com/articulo"
+                        value={uploadState.url}
+                        onChange={(e) => setUploadState(prev => ({ ...prev, url: e.target.value }))}
+                        className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 text-sm focus:border-[#00d4ff] focus:outline-none focus:ring-1 focus:ring-[#00d4ff]/20"
+                      />
+                      
+                      <button 
+                        onClick={handleAnalyzeClick}
+                        disabled={analysisState.isLoading}
+                        className="w-full px-4 py-2 bg-gradient-to-r from-[#00ff88] to-[#00d4ff] text-slate-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-[#00ff88]/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        <Target className="w-4 h-4" />
+                        Analizar Tendencia
+                      </button>
+                    </div>
+                    
+                    <div className="flex justify-center gap-4 mt-4 text-xs text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <FileText className="w-3 h-3" />
+                        PDF, TXT
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Link className="w-3 h-3" />
+                        URLs
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {uploadState.uploadedFile && (
+                  <div className="mt-3 p-2 bg-slate-700/30 rounded-lg flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-[#00ff88]" />
+                    <span className="text-slate-300 truncate">{uploadState.uploadedFile.name}</span>
+                    <button 
+                      onClick={() => setUploadState(prev => ({ ...prev, uploadedFile: null }))}
+                      className="text-slate-500 hover:text-red-400 ml-auto"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {analysisState.error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3 p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-center gap-2 text-sm"
+                  >
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <span className="text-red-300 text-xs">{analysisState.error}</span>
+                    <button
+                      onClick={() => setAnalysisState(prev => ({ ...prev, error: null }))}
+                      className="text-red-400 hover:text-red-300 ml-auto"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Historial Real */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-300 mb-3">Historial Reciente</h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto sidebar-scroll">
+              {loadingHistory ? (
+                <div className="p-3 bg-slate-800/20 rounded-lg border border-slate-700/30 text-center">
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-slate-500" />
+                  <p className="text-xs text-slate-500">Cargando historial...</p>
+                </div>
+              ) : analysisHistory.length > 0 ? (
+                analysisHistory.map((analysis) => (
+                  <div 
+                    key={analysis.id}
+                    onClick={() => loadAnalysisFromHistory(analysis.id)}
+                    className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/50 cursor-pointer hover:bg-slate-700/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="w-3 h-3 text-[#00ff88]" />
+                      <span className="text-xs text-slate-300 truncate">{analysis.title}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {new Date(analysis.created_at).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                ))
+              ) : !isSupabaseConfigured ? (
+                <div className="p-3 bg-amber-900/20 rounded-lg border border-amber-500/30 text-center">
+                  <p className="text-xs text-amber-300">Configura Supabase para persistencia</p>
+                  <p className="text-xs text-amber-500 mt-1">Ver SUPABASE_SETUP.md</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-800/20 rounded-lg border border-slate-700/30 text-center">
+                  <p className="text-xs text-slate-500">No hay análisis previos</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Navegación con Tabs */}
+        <div className="border-b border-slate-700/50 bg-slate-900/50">
+          <nav className="flex px-8 pt-6">
+            <div className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-300 ${
+                  activeTab === 'dashboard'
+                    ? 'bg-slate-800/50 text-[#00ff88] border-b-2 border-[#00ff88]'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Dashboard
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('network')}
+                className={`px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-300 ${
+                  activeTab === 'network'
+                    ? 'bg-slate-800/50 text-[#00d4ff] border-b-2 border-[#00d4ff]'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/30'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Network className="w-4 h-4" />
+                  Red de Conexiones
+                </div>
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        {/* Contenido Principal */}
+        <main className="flex-1 p-8 overflow-auto">
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' ? (
+              !analysisState.result ? (
+              <motion.div
+                key="welcome"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.8 }}
+                className="flex items-center justify-center h-full"
+              >
+                <div className="text-center max-w-2xl">
+                  <Brain className="w-20 h-20 text-[#00ff88] mx-auto mb-6" />
+                  <h2 className="text-4xl font-bold text-white mb-4">
+                    Analizamos la actualidad para
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#00ff88] to-[#00d4ff]">
+                      decodificar futuros
+                    </span>
+                  </h2>
+                  <p className="text-xl text-slate-300 mb-8">
+                    Perfilación criminal aplicada a tendencias. Del caos de información a insights transformadores.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-slate-800/20 backdrop-blur-sm border border-slate-700/30 rounded-xl p-6">
+                      <TrendingUp className="w-10 h-10 text-[#00ff88] mx-auto mb-3" />
+                      <h4 className="text-lg font-semibold text-white mb-2">Análisis Predictivo</h4>
+                      <p className="text-slate-400 text-sm">Algoritmos de IA para detectar patrones emergentes</p>
+                    </div>
+                    
+                    <div className="bg-slate-800/20 backdrop-blur-sm border border-slate-700/30 rounded-xl p-6">
+                      <Brain className="w-10 h-10 text-[#00d4ff] mx-auto mb-3" />
+                      <h4 className="text-lg font-semibold text-white mb-2">Perfilación Avanzada</h4>
+                      <p className="text-slate-400 text-sm">Técnicas forenses aplicadas al análisis</p>
+                    </div>
+                    
+                    <div className="bg-slate-800/20 backdrop-blur-sm border border-slate-700/30 rounded-xl p-6">
+                      <Target className="w-10 h-10 text-[#00ff88] mx-auto mb-3" />
+                      <h4 className="text-lg font-semibold text-white mb-2">Insights Accionables</h4>
+                      <p className="text-slate-400 text-sm">Recomendaciones estratégicas basadas en evidencia</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="results"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="space-y-8"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <Brain className="w-8 h-8 text-[#00ff88]" />
+                    <h2 className="text-3xl font-bold text-white">Análisis Completado</h2>
+                  </div>
+                  <button
+                    onClick={resetAnalysis}
+                    className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Nuevo Análisis
+                  </button>
+                </div>
+
+                {/* KPIs Grid - 8 KPIs según metodología */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Probabilidad Impacto</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00ff88]">{analysisState.result.kpis.probabilidad_impacto}%</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Velocidad Propagación</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00d4ff]">{analysisState.result.kpis.velocidad_propagacion}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Shield className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Credibilidad</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00ff88]">{analysisState.result.kpis.indice_credibilidad}/100</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Madurez</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00d4ff]">{analysisState.result.kpis.madurez_tecnologica}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Globe className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Cobertura</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00ff88]">{analysisState.result.kpis.cobertura_geografica}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BarChart3 className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Sectores</h4>
+                    </div>
+                    <div className="text-2xl font-bold text-[#00d4ff]">{analysisState.result.kpis.sectores_afectados_count}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="w-5 h-5 text-[#00ff88]" />
+                      <h4 className="text-sm font-semibold text-white">Inversión</h4>
+                    </div>
+                    <div className="text-lg font-bold text-[#00ff88]">{analysisState.result.kpis.inversion_asociada}</div>
+                  </div>
+
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Activity className="w-5 h-5 text-[#00d4ff]" />
+                      <h4 className="text-sm font-semibold text-white">Potencial</h4>
+                    </div>
+                    <div className="text-lg font-bold text-[#00d4ff]">{analysisState.result.kpis.potencial_disruptivo}</div>
+                  </div>
+                </div>
+
+                {/* 8 Secciones de Análisis según metodología */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 1. Resumen Ejecutivo */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Brain className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Resumen Ejecutivo</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <div><span className="text-slate-400">Concepto:</span> <span className="text-white">{analysisState.result.analisis.resumen_ejecutivo.concepto_principal}</span></div>
+                      <div><span className="text-slate-400">Impacto:</span> <span className="text-[#00ff88]">{analysisState.result.analisis.resumen_ejecutivo.puntuacion_impacto}/10</span></div>
+                      <div><span className="text-slate-400">Adopción:</span> <span className="text-[#00d4ff]">{analysisState.result.analisis.resumen_ejecutivo.tiempo_adopcion}</span></div>
+                      <div className="flex flex-wrap gap-2">
+                        {analysisState.result.analisis.resumen_ejecutivo.palabras_clave.map((palabra, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-slate-700/50 rounded text-xs text-slate-300">{palabra}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Perfilación Criminal */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Target className="w-6 h-6 text-[#00d4ff]" />
+                      <h3 className="text-lg font-semibold text-white">Perfilación Criminal</h3>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div><span className="text-slate-400 font-medium">Evidencia:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.perfilacion_criminal.patron_evidencia}</p></div>
+                      <div><span className="text-slate-400 font-medium">Modus Operandi:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.perfilacion_criminal.modus_operandi}</p></div>
+                    </div>
+                  </div>
+
+                  {/* 3. Análisis Geográfico */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 lg:col-span-2">
+                    <div className="flex items-center gap-3 mb-4">
+                      <MapPin className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Análisis Geográfico</h3>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Información textual */}
+                      <div className="space-y-3">
+                        <div><span className="text-slate-400">Epicentro:</span> <span className="text-[#00ff88]">{analysisState.result.analisis.analisis_geografico.epicentro}</span></div>
+                        <div>
+                          <span className="text-slate-400">Adopción:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {analysisState.result.analisis.analisis_geografico.zonas_adopcion.map((zona, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-green-900/20 border border-green-500/30 rounded text-xs text-green-300">{zona}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Resistencias:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {analysisState.result.analisis.analisis_geografico.resistencias.map((zona, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-300">{zona}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Mapa Geográfico Interactivo */}
+                      <div>
+                        <TrendMap analysis={analysisState.result} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Proyecciones Futuras */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <TrendingUp className="w-6 h-6 text-[#00d4ff]" />
+                      <h3 className="text-lg font-semibold text-white">Proyecciones Futuras</h3>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div><span className="text-green-400 font-medium">Optimista:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.proyecciones_futuras.escenario_optimista}</p></div>
+                      <div><span className="text-slate-400 font-medium">Realista:</span> <p className="text-slate-300 mt-1">{analysisState.result.analisis.proyecciones_futuras.escenario_realista}</p></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags y Recomendaciones según nueva estructura */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 5. Tags y Conexiones */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Activity className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Tags y Conexiones</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Primarios:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.conexiones.tags_primarios.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-[#00ff88]/20 border border-[#00ff88]/30 rounded text-xs text-[#00ff88]">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Tecnologías:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.conexiones.tags_secundarios.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-[#00d4ff]/20 border border-[#00d4ff]/30 rounded text-xs text-[#00d4ff]">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Impacto:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.conexiones.tags_impacto.map((tag, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-amber-900/20 border border-amber-500/30 rounded text-xs text-amber-300">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. Sectores Objetivo */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <BarChart3 className="w-6 h-6 text-[#00d4ff]" />
+                      <h3 className="text-lg font-semibold text-white">Sectores Objetivo</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Macro Sectores:</span>
+                        <div className="space-y-2 mt-2">
+                          {analysisState.result.impacto.macro_sectores.map((sector, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg">
+                              <div className="w-2 h-2 bg-[#00d4ff] rounded-full" />
+                              <span className="text-slate-300 text-sm">{sector}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-400 font-medium">Sectores Específicos:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {analysisState.result.impacto.sectores_afectados.map((sector, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-slate-700/50 rounded text-xs text-slate-300">{sector}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 7. Recomendaciones Estratégicas */}
+                  <div className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 lg:col-span-2">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Shield className="w-6 h-6 text-[#00ff88]" />
+                      <h3 className="text-lg font-semibold text-white">Recomendaciones Estratégicas</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-[#00ff88] mb-2">Para Inversores</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_inversores.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-[#00ff88] rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-[#00d4ff] mb-2">Para Empresas</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_empresas.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-[#00d4ff] rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-400 mb-2">Para Reguladores</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_reguladores.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-amber-400 rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-purple-400 mb-2">Para Sociedad</h4>
+                        <ul className="space-y-1">
+                          {analysisState.result.recomendaciones.para_sociedad.map((rec, idx) => (
+                            <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-purple-400 rounded-full mt-1.5 flex-shrink-0" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          ) : (
+              // Vista de Red de Conexiones
+              <motion.div
+                key="network"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.8 }}
+                className="h-full"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Network className="w-8 h-8 text-[#00d4ff]" />
+                    <h2 className="text-3xl font-bold text-white">Red de Conexiones</h2>
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    Visualización interactiva de tendencias conectadas
+                  </div>
+                </div>
+
+                {/* Componente de Red con altura completa */}
+                <div className="h-[calc(100vh-250px)] min-h-[600px]">
+                  <NetworkGraph analyses={analysisHistory} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
+    </div>
+  );
+} 
