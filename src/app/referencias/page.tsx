@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon, X, Copy, Edit2, Check, Upload, Save } from 'lucide-react'
+import { Plus, Image as ImageIcon, FileText, Lightbulb, X, Copy, Edit2, Check, Upload, Save } from 'lucide-react'
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'

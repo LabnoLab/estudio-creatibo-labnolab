@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowRight, ImageIcon, TrendingUp, Users, Activity, FolderOpen, Star, Timer, Palette, Brain, Target } from 'lucide-react'
+import { ArrowRight, ImageIcon, TrendingUp, Users, Activity, FolderOpen, Star, Timer, Palette, Target } from 'lucide-react'
 import Link from 'next/link'
 
 export default function HubCentralPage() {
@@ -146,60 +146,54 @@ export default function HubCentralPage() {
             whileHover={{ y: -8, scale: 1.02 }}
             className="group"
           >
-            <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 cursor-pointer relative">
-              {/* Coming Soon Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-black/80 to-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
-                <div className="text-center">
-                  <Timer className="w-12 h-12 text-white mx-auto mb-3" />
-                  <span className="text-white font-medium text-lg">Próximamente</span>
+            <Link href="/radar">
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 cursor-pointer">
+                <div className="p-8">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <TrendingUp className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="flex items-center space-x-2 text-blue-600 group-hover:translate-x-1 transition-transform">
+                      <span className="text-sm font-medium">Explorar</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-3">Radar de Futuros</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    Análisis de tendencias emergentes, prospectiva estratégica y 
+                    exploración de escenarios futuros para la innovación.
+                  </p>
+
+                  {/* Preview Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">5</div>
+                      <div className="text-xs text-gray-500">Tendencias</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-indigo-600">3</div>
+                      <div className="text-xs text-gray-500">Análisis</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">12</div>
+                      <div className="text-xs text-gray-500">Reportes</div>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                      Activo
+                    </span>
+                    <span className="text-xs text-gray-400">Última actividad: hoy</span>
+                  </div>
                 </div>
               </div>
-
-              <div className="p-8 opacity-50">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex items-center space-x-2 text-blue-600 group-hover:translate-x-1 transition-transform">
-                    <span className="text-sm font-medium">Explorar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-
-                {/* Content */}
-                <h3 className="text-2xl font-semibold text-gray-900 mb-3">Radar de Futuros</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Análisis de tendencias emergentes, prospectiva estratégica y 
-                  exploración de escenarios futuros para la innovación.
-                </p>
-
-                {/* Preview Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">0</div>
-                    <div className="text-xs text-gray-500">Tendencias</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">0</div>
-                    <div className="text-xs text-gray-500">Análisis</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">0</div>
-                    <div className="text-xs text-gray-500">Reportes</div>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                    En desarrollo
-                  </span>
-                  <span className="text-xs text-gray-400">Beta Q1 2025</span>
-                </div>
-              </div>
-            </div>
+            </Link>
           </motion.div>
 
           {/* Team Building */}
@@ -288,7 +282,7 @@ export default function HubCentralPage() {
               <div className="w-12 h-12 bg-gradient-to-br from-[#E55A2B] to-[#D4502A] rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FolderOpen className="w-6 h-6 text-white" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">27</div>
+              <div className="text-3xl font-bold text-gray-900 mb-2">32</div>
               <div className="text-sm text-gray-600 font-medium">Proyectos Totales</div>
             </motion.div>
 
@@ -298,10 +292,10 @@ export default function HubCentralPage() {
               whileHover={{ y: -2 }}
             >
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Brain className="w-6 h-6 text-white" />
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">156</div>
-              <div className="text-sm text-gray-600 font-medium">Ideas Generadas</div>
+              <div className="text-3xl font-bold text-gray-900 mb-2">8</div>
+              <div className="text-sm text-gray-600 font-medium">Tendencias Analizadas</div>
             </motion.div>
 
             <motion.div 
@@ -351,6 +345,20 @@ export default function HubCentralPage() {
                   className="flex items-center space-x-4"
                   variants={itemVariants}
                 >
+                  <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-900 font-medium">Análisis de tendencias en IA completado</p>
+                    <p className="text-sm text-gray-500">Radar de Futuros • Hace 1 hora</p>
+                  </div>
+                  <span className="text-xs text-gray-400">15:45</span>
+                </motion.div>
+
+                <motion.div 
+                  className="flex items-center space-x-4"
+                  variants={itemVariants}
+                >
                   <div className="w-10 h-10 bg-[#E55A2B]/10 rounded-full flex items-center justify-center">
                     <ImageIcon className="w-5 h-5 text-[#E55A2B]" />
                   </div>
@@ -365,28 +373,28 @@ export default function HubCentralPage() {
                   className="flex items-center space-x-4"
                   variants={itemVariants}
                 >
-                  <div className="w-10 h-10 bg-[#8B7355]/10 rounded-full flex items-center justify-center">
-                    <FolderOpen className="w-5 h-5 text-[#8B7355]" />
+                  <div className="w-10 h-10 bg-indigo-500/10 rounded-full flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-gray-900 font-medium">Proyecto "Branding Restaurante" actualizado</p>
-                    <p className="text-sm text-gray-500">Estudio Creativo • Hace 5 horas</p>
+                    <p className="text-gray-900 font-medium">Radar de Futuros activado exitosamente</p>
+                    <p className="text-sm text-gray-500">Sistema • Hace 3 horas</p>
                   </div>
-                  <span className="text-xs text-gray-400">11:15</span>
+                  <span className="text-xs text-gray-400">13:00</span>
                 </motion.div>
 
                 <motion.div 
                   className="flex items-center space-x-4"
                   variants={itemVariants}
                 >
-                  <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center">
-                    <Star className="w-5 h-5 text-[#D4AF37]" />
+                  <div className="w-10 h-10 bg-[#8B7355]/10 rounded-full flex items-center justify-center">
+                    <FolderOpen className="w-5 h-5 text-[#8B7355]" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-gray-900 font-medium">15 nuevos prompts añadidos a la biblioteca</p>
-                    <p className="text-sm text-gray-500">Estudio Creativo • Ayer</p>
+                    <p className="text-gray-900 font-medium">Proyecto &quot;Branding Restaurante&quot; actualizado</p>
+                    <p className="text-sm text-gray-500">Estudio Creativo • Hace 5 horas</p>
                   </div>
-                  <span className="text-xs text-gray-400">Ayer</span>
+                  <span className="text-xs text-gray-400">11:15</span>
                 </motion.div>
               </div>
             </div>

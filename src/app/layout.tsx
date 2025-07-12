@@ -1,6 +1,5 @@
 'use client'
 
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { usePathname } from 'next/navigation'
@@ -23,7 +22,7 @@ const geistMono = Geist_Mono({
 const navigation = [
   { name: 'Hub Central', href: '/', icon: Home },
   { name: 'Estudio Creativo', href: '/referencias', icon: Palette },
-  { name: 'Radar de Futuros', href: '/radar', icon: TrendingUp, comingSoon: true },
+  { name: 'Radar de Futuros', href: '/radar', icon: TrendingUp },
   { name: 'Team Building', href: '/teambuilding', icon: Users, comingSoon: true },
 ]
 
