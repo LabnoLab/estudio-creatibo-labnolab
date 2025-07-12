@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { loadAnalysisConfig, validateAnalysisResult } from '../analyze/route';
+import { loadAnalysisConfig, validateAnalysisResult } from '../route';
+import { getPrompt } from '../../../lib/prompts';
 
 // Inicializar cliente OpenAI
 const openai = new OpenAI({
@@ -75,27 +76,14 @@ export async function POST(request: NextRequest) {
     const config = await loadAnalysisConfig();
     console.log('📋 [CADAVER API] Configuración cargada exitosamente');
 
-    // Crear prompt del sistema para el cadáver exquisito
-    const cadaverSystemPrompt = `Eres un maestro del surrealismo y la colaboración creativa, experto en la técnica del "Cadáver Exquisito".
+    // Cargar prompt del sistema para el cadáver exquisito desde JSON
+    const cadaverSystemPrompt = await getPrompt('teambuilding', 'cadaver_exquisito');
 
-Tu tarea es crear un PROMPT HÍBRIDO fascinante combinando ${prompts.length} prompts diferentes de manera surrealista, manteniendo la esencia de cada uno pero creando algo completamente nuevo e inesperado.
+    // Crear prompt específico para esta ejecución
+    const cadaverPromptForExecution = `${cadaverSystemPrompt}
 
 PROMPTS DEL EQUIPO:
 ${prompts.map((p, i) => `${i + 1}. ${p.name ? `[${p.name}${p.role ? ` - ${p.role}` : ''}]: ` : ''}${p.content}`).join('\n\n')}
-
-INSTRUCCIONES PARA EL CADÁVER EXQUISITO:
-1. Identifica los elementos más interesantes y únicos de cada prompt
-2. Combínalos de manera surrealista, creando conexiones inesperadas
-3. Mantén la coherencia conceptual pero permite la experimentación radical
-4. El resultado debe ser más rico y complejo que la suma de sus partes
-5. Preserva la esencia creativa de cada contribución individual
-
-TÉCNICAS SURREALISTAS A APLICAR:
-- Yuxtaposición de conceptos aparentemente no relacionados
-- Metamorfosis de ideas (una idea se transforma gradualmente en otra)
-- Automatismo creativo (flujo libre de ideas)
-- Sinestesia conceptual (mezclar diferentes tipos de percepciones/enfoques)
-- Condensación simbólica (múltiples significados en una sola imagen/concepto)
 
 FORMATO DE RESPUESTA (JSON):
 {
@@ -119,7 +107,7 @@ IMPORTANTE:
       messages: [
         {
           role: 'system',
-          content: cadaverSystemPrompt
+          content: cadaverPromptForExecution
         },
         {
           role: 'user',
@@ -196,12 +184,11 @@ IMPORTANTE:
     // Validar resultado del análisis
     const validatedResult = await validateAnalysisResult(analysisResult, config);
 
-    // Crear análisis de dinámicas colaborativas
+    // Crear análisis de dinámicas colaborativas usando prompt del JSON
     console.log('🤝 [CADAVER API] Analizando dinámicas de colaboración...');
     
-    const dinamicasSystemPrompt = `Eres un experto en dinámicas de equipo y colaboración creativa.
-
-Analiza estos prompts originales y el resultado híbrido para identificar dinámicas de colaboración:
+    const dinamicasBasePrompt = await getPrompt('teambuilding', 'dinamicas_grupo');
+    const dinamicasSystemPrompt = `${dinamicasBasePrompt}
 
 PROMPTS ORIGINALES:
 ${prompts.map((p, i) => `${i + 1}. ${p.name ? `[${p.name}${p.role ? ` - ${p.role}` : ''}]: ` : ''}${p.content}`).join('\n\n')}
@@ -248,38 +235,22 @@ Responde con un JSON que contenga:
         estilos_detectados: ["Diversos estilos creativos detectados"],
         sinergias: ["Complementariedad de enfoques"],
         tensiones_creativas: ["Diversidad de perspectivas"],
-        potencial_innovador: "Alto potencial debido a la diversidad de enfoques creativos"
+        potencial_innovador: "Alto potencial innovador debido a la diversidad de enfoques creativos en el equipo"
       };
     }
 
-    // Construir respuesta final
+    console.log('🎭 [CADAVER API] Construyendo respuesta final...');
+
+    // Construir respuesta completa
     const result: CadaverExquisitoResult = {
       prompt_hibrido: promptHibrido,
-      analisis_colectivo: {
-        dimensions: validatedResult.dimensions,
-        topDimensions: validatedResult.topDimensions
-      },
+      analisis_colectivo: validatedResult,
       dinamicas_colaboracion: dinamicasData,
       prompts_originales: prompts
     };
 
-    console.log('🎭 [CADAVER API] Cadáver exquisito completado exitosamente');
-    console.log('📊 [CADAVER API] Prompts procesados:', prompts.length);
-    console.log('🎨 [CADAVER API] Prompt híbrido length:', promptHibrido.length);
-    console.log('📈 [CADAVER API] Top dimensions:', validatedResult.topDimensions.length);
-
-    return NextResponse.json({
-      success: true,
-      ...result,
-      proceso_creativo: cadaverData.proceso_creativo,
-      elementos_preservados: cadaverData.elementos_preservados,
-      innovaciones_emergentes: cadaverData.innovaciones_emergentes,
-      usage: {
-        cadaver: cadaverCompletion.usage,
-        analysis: analysisCompletion.usage,
-        dinamicas: dinamicasCompletion.usage
-      }
-    });
+    console.log('✅ [CADAVER API] Cadáver exquisito completado exitosamente');
+    return NextResponse.json(result);
 
   } catch (error: any) {
     console.error('💥 [CADAVER API] Error:', error);
@@ -306,16 +277,16 @@ Responde con un JSON que contenga:
   }
 }
 
-// Función para limpiar la respuesta de OpenAI
+// Función helper para limpiar respuestas de OpenAI
 function cleanResponse(response: string): string {
   // Remover markdown si existe
   let cleaned = response.replace(/```json\s*|\s*```/g, '');
   
-  // Remover texto adicional antes y después del JSON
+  // Buscar el inicio y fin del JSON
   const jsonStart = cleaned.indexOf('{');
   const jsonEnd = cleaned.lastIndexOf('}') + 1;
   
-  if (jsonStart !== -1 && jsonEnd !== -1) {
+  if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
     cleaned = cleaned.substring(jsonStart, jsonEnd);
   }
   

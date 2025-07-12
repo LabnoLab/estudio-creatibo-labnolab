@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getPrompt } from '../../../lib/prompts';
 
 // Inicializar cliente OpenAI
 const openai = new OpenAI({
@@ -51,8 +52,11 @@ export async function POST(request: NextRequest) {
     const complementaryPerspectives = selectComplementaryPerspectives(dominantDimension.name);
     console.log('🔄 [PERSPECTIVES API] Perspectivas seleccionadas:', complementaryPerspectives.map(p => p.label));
 
+    // Cargar prompt del sistema desde JSON
+    const baseSystemPrompt = await getPrompt('teambuilding', 'otras_perspectivas');
+    
     // Crear prompt del sistema para generar perspectivas
-    const systemPrompt = `Eres un experto en reescribir prompts creativos desde diferentes perspectivas profesionales para fomentar la empatía y comprensión entre equipos diversos.
+    const systemPrompt = `${baseSystemPrompt}
 
 Tu tarea es reescribir el prompt del usuario desde ${complementaryPerspectives.length} perspectivas específicas, manteniendo la esencia original pero añadiendo el enfoque único de cada perfil.
 

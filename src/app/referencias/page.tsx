@@ -1,737 +1,895 @@
-'use client'
+'use client';
 
-import { motion } from 'framer-motion'
-import { Plus, Image as ImageIcon, FileText, Lightbulb, X, Copy, Edit2, Check, Upload, Save } from 'lucide-react'
-import Image from 'next/image'
-import { useState, useEffect, useRef } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
+import { useState, useEffect, useCallback } from 'react';
+import { Upload, X, Edit2, Copy, Check, Tag, Calendar, FileText, Search, Plus, Trash2, Sparkles, Heart, Eye, Download, Share2, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ReferenciasPage() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [referencias, setReferencias] = useState<string[]>([])
-  const [imageTitle, setImageTitle] = useState('')
-  const [imagePrompt, setImagePrompt] = useState('')
-  const [promptName, setPromptName] = useState('')
-  const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [isEditingPrompt, setIsEditingPrompt] = useState(false)
-  const [isEditingPromptName, setIsEditingPromptName] = useState(false)
-  const [copied, setCopied] = useState(false)
-  
-  // Estados para Drag & Drop
-  const [isDragging, setIsDragging] = useState(false)
-  const [showUploadConfig, setShowUploadConfig] = useState(false)
-  const [uploadFile, setUploadFile] = useState<File | null>(null)
-  const [uploadPreview, setUploadPreview] = useState<string>('')
-  const [uploadTitle, setUploadTitle] = useState('')
-  const [uploadPrompt, setUploadPrompt] = useState('')
-  const [uploadPromptName, setUploadPromptName] = useState('')
-  const [isUploading, setIsUploading] = useState(false)
-  
-  const dropZoneRef = useRef<HTMLDivElement>(null)
+interface ImageMetadata {
+  filename: string;
+  name: string;
+  prompt: string;
+  tags: string[];
+  uploadDate: string;
+  size: number;
+}
 
-  // Cargar imágenes dinámicamente
+interface UploadModalData {
+  name: string;
+  prompt: string;
+  tags: string;
+}
+
+// Función utilitaria para formatear tamaño de archivo
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+export default function Referencias() {
+  const [images, setImages] = useState<ImageMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<ImageMetadata | null>(null);
+  const [editingMetadata, setEditingMetadata] = useState<ImageMetadata | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadModalData, setUploadModalData] = useState<UploadModalData>({
+    name: '',
+    prompt: '',
+    tags: ''
+  });
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [improvingPrompt, setImprovingPrompt] = useState(false);
+  const [improvedPrompt, setImprovedPrompt] = useState<string | null>(null);
+  const [promptError, setPromptError] = useState<string | null>(null);
+
+  // Cargar imágenes al iniciar
   useEffect(() => {
-    const imageFiles = [
-      'animalitos-gorila.jpeg',
-      'animalitos-camaleon.jpeg',
-      'animalitos-foca.jpeg',
-      'animalitos-cocodrilo.jpeg',
-      'parches-marcas.jpeg',
-      'teclas-nike.jpeg',
-      'teclas-playstation.jpeg',
-      'teclas-twich.jpeg',
-      'teclas-mcdonalds.jpeg'
-    ]
-    setReferencias(imageFiles)
-  }, [])
+    loadImages();
+  }, []);
 
-  // Función para abrir modal con datos de la imagen
-  const openImageModal = (imageName: string) => {
-    setSelectedImage(imageName)
-    setImageTitle(imageName.replace('.jpeg', '').replace(/-/g, ' '))
-    setImagePrompt(`Create a professional digital artwork featuring ${imageName.replace('.jpeg', '').replace(/-/g, ' ')} with modern design elements, clean composition, and attention to detail. Use contemporary color palette and sophisticated typography.`)
-    setPromptName(`Prompt para ${imageName.replace('.jpeg', '').replace(/-/g, ' ')}`)
-    setIsEditingTitle(false)
-    setIsEditingPrompt(false)
-    setIsEditingPromptName(false)
-    setCopied(false)
-  }
-
-  // Función para copiar prompt
-  const copyPrompt = async () => {
+  const loadImages = async () => {
     try {
-      await navigator.clipboard.writeText(imagePrompt)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Error copying text: ', err)
+      const response = await fetch('/api/referencias');
+      const data = await response.json();
+      setImages(data.images || []);
+    } catch (error) {
+      console.error('Error loading images:', error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Drag & Drop Event Handlers
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }
+  // Filtrar imágenes por búsqueda
+  const filteredImages = images.filter(img =>
+    img.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    img.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    img.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
-      setIsDragging(false)
-    }
-  }
+  // Drag & Drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    const imageFile = files.find(file => file.type.startsWith('image/'))
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
     
     if (imageFile) {
-      setUploadFile(imageFile)
-      
-      // Crear preview
-      const reader = new FileReader()
-      reader.onload = () => {
-        setUploadPreview(reader.result as string)
-      }
-      reader.readAsDataURL(imageFile)
-      
-      // Configurar valores por defecto
-      const fileName = imageFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
-      setUploadTitle(fileName)
-      setUploadPrompt(`Create a professional digital artwork featuring ${fileName} with modern design elements, clean composition, and attention to detail. Use contemporary color palette and sophisticated typography.`)
-      setUploadPromptName(`Prompt para ${fileName}`)
-      
-      setShowUploadConfig(true)
+      setPendingFile(imageFile);
+      setUploadModalData({
+        name: imageFile.name.replace(/\.[^/.]+$/, ""),
+        prompt: '',
+        tags: ''
+      });
+      setUploadModalOpen(true);
     }
-  }
+  }, []);
 
-  // Función para cancelar upload
-  const cancelUpload = () => {
-    setShowUploadConfig(false)
-    setUploadFile(null)
-    setUploadPreview('')
-    setUploadTitle('')
-    setUploadPrompt('')
-    setUploadPromptName('')
-  }
+  // Upload handlers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPendingFile(file);
+      setUploadModalData({
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        prompt: '',
+        tags: ''
+      });
+      setUploadModalOpen(true);
+    }
+  };
 
-  // Función para guardar imagen
-  const saveUploadedImage = async () => {
-    if (!uploadFile) return
+  const handleUpload = async () => {
+    if (!pendingFile) return;
     
-    setIsUploading(true)
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', pendingFile);
+    formData.append('name', uploadModalData.name);
+    formData.append('prompt', uploadModalData.prompt);
+    formData.append('tags', uploadModalData.tags);
     
     try {
-      // Simular upload (en una app real, aquí enviarías a tu API)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
       
-      // Generar nombre único para el archivo
-      const timestamp = Date.now()
-      const fileExtension = uploadFile.name.split('.').pop()
-      const newFileName = `upload-${timestamp}.${fileExtension}`
-      
-      // Agregar a la lista de referencias
-      setReferencias(prev => [newFileName, ...prev])
-      
-      // Cerrar modal de configuración
-      setShowUploadConfig(false)
-      setUploadFile(null)
-      setUploadPreview('')
-      setUploadTitle('')
-      setUploadPrompt('')
-      setUploadPromptName('')
-      
-      // Mostrar feedback de éxito (opcional)
-      console.log('Imagen subida exitosamente:', newFileName)
-      
+      if (response.ok) {
+        await loadImages();
+        setUploadModalOpen(false);
+        setPendingFile(null);
+        setUploadModalData({ name: '', prompt: '', tags: '' });
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
     } catch (error) {
-      console.error('Error uploading image:', error)
+      console.error('Upload error:', error);
+      alert('Error uploading file');
     } finally {
-      setIsUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        delayChildren: 0.3,
-        staggerChildren: 0.1
+  // Metadata handlers
+  const handleSaveMetadata = async (metadata: ImageMetadata) => {
+    try {
+      const response = await fetch('/api/referencias', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: metadata.filename,
+          name: metadata.name,
+          prompt: metadata.prompt,
+          tags: metadata.tags
+        })
+      });
+      
+      if (response.ok) {
+        await loadImages();
+        setEditingMetadata(null);
+        
+        // Actualizar imagen seleccionada si es la misma
+        if (selectedImage?.filename === metadata.filename) {
+          setSelectedImage(metadata);
+        }
       }
+    } catch (error) {
+      console.error('Error saving metadata:', error);
     }
-  }
+  };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100
-      }
-    }
-  }
+  const handleCopyPrompt = (prompt: string) => {
+    navigator.clipboard.writeText(prompt);
+    setCopiedPrompt(prompt);
+    setTimeout(() => setCopiedPrompt(null), 2000);
+  };
 
-  const cardVariants = {
-    hidden: { scale: 0.95, opacity: 0 },
-    visible: {
-      scale: 1,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 80,
-        delay: 0.1
-      }
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Función para mejorar prompts con OpenAI
+  const handleImprovePrompt = async (currentPrompt: string, metadata: ImageMetadata) => {
+    if (!currentPrompt.trim()) {
+      setPromptError('El prompt no puede estar vacío');
+      return;
     }
+
+    setImprovingPrompt(true);
+    setPromptError(null);
+    setImprovedPrompt(null);
+
+    try {
+      const response = await fetch('/api/mejorar-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          imageContext: metadata.name,
+          tags: metadata.tags
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al mejorar el prompt');
+      }
+
+      const data = await response.json();
+      setImprovedPrompt(data.improvedPrompt);
+    } catch (error) {
+      console.error('Error improving prompt:', error);
+      setPromptError(error instanceof Error ? error.message : 'Error al mejorar el prompt');
+    } finally {
+      setImprovingPrompt(false);
+    }
+  };
+
+  // Función para aplicar el prompt mejorado
+  const handleApplyImprovedPrompt = async (metadata: ImageMetadata) => {
+    if (!improvedPrompt) return;
+
+    const updatedMetadata = { ...metadata, prompt: improvedPrompt };
+    await handleSaveMetadata(updatedMetadata);
+    setImprovedPrompt(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Cargando tu galería creativa...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Modal Épico para Referencias */}
-      <Dialog.Root open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 animate-in fade-in-0" />
-          <Dialog.Content className="fixed inset-0 z-50 overflow-hidden">
-            <div className="h-full flex">
-              {/* Imagen Grande - Lado Izquierdo */}
-              <div className="flex-1 flex items-center justify-center p-8 bg-[#1a1a1a]">
-                <div className="relative w-full h-full max-w-4xl max-h-[90vh]">
-                  {selectedImage && (
-                    <Image
-                      src={`/uploads/referencias/${selectedImage}`}
-                      alt={imageTitle}
-                      fill
-                      className="object-contain rounded-xl shadow-2xl"
-                      priority
-                    />
-                  )}
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
+      {/* Header Galería Moderna */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-orange-200 sticky top-0 z-10">
+        <div className="px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                🎨 Estudio Creativo
+              </h1>
+              <p className="text-orange-600 font-medium">
+                Tu galería de referencias visuales e inspiración
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar inspiración..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-3 border border-orange-200 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                />
               </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer font-medium"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Subir Imagen
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Panel de Metadatos - Lado Derecho */}
-              <div className="w-96 bg-[#2a2a2a] border-l border-[#404040] flex flex-col">
-                {/* Header del Panel */}
-                <div className="p-6 border-b border-[#404040]">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-medium text-[#f8f8f8]">Detalles de Referencia</h2>
-                    <Dialog.Close asChild>
-                      <button className="w-8 h-8 rounded-lg bg-[#404040] hover:bg-[#4a4a4a] flex items-center justify-center text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors">
-                        <X className="w-5 h-5" />
-                      </button>
-                    </Dialog.Close>
-                  </div>
-                  
-                  {/* Título de la Imagen */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#a0a0a0]">Nombre de la imagen</label>
-                    {isEditingTitle ? (
-                      <input
-                        type="text"
-                        value={imageTitle}
-                        onChange={(e) => setImageTitle(e.target.value)}
-                        onBlur={() => setIsEditingTitle(false)}
-                        onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
-                        className="w-full p-2 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-[#f8f8f8] font-medium">{imageTitle}</span>
-                        <button
-                          onClick={() => setIsEditingTitle(true)}
-                          className="p-1 rounded hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+      {/* Galería Masonry */}
+      <div className="p-8">
+        <div
+          className={`transition-all duration-300 ${
+            dragOver ? 'bg-orange-100 border-orange-400' : 'bg-white/40 border-orange-200'
+          } border-2 border-dashed rounded-3xl p-8 backdrop-blur-sm`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {images.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ImageIcon className="h-12 w-12 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Tu galería está esperando
+              </h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Arrastra imágenes aquí o haz clic en "Subir Imagen" para comenzar a construir tu colección de referencias visuales
+              </p>
+              <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  JPEG, PNG, WebP
                 </div>
-
-                {/* Contenido del Panel */}
-                <div className="flex-1 p-6 space-y-6">
-                  {/* Nombre del Prompt */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#a0a0a0]">Nombre del prompt</label>
-                    {isEditingPromptName ? (
-                      <input
-                        type="text"
-                        value={promptName}
-                        onChange={(e) => setPromptName(e.target.value)}
-                        onBlur={() => setIsEditingPromptName(false)}
-                        onKeyDown={(e) => e.key === 'Enter' && setIsEditingPromptName(false)}
-                        className="w-full p-2 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-[#f8f8f8] font-medium">{promptName}</span>
-                        <button
-                          onClick={() => setIsEditingPromptName(true)}
-                          className="p-1 rounded hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Prompt Completo */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#a0a0a0]">Prompt completo</label>
-                    {isEditingPrompt ? (
-                      <textarea
-                        value={imagePrompt}
-                        onChange={(e) => setImagePrompt(e.target.value)}
-                        onBlur={() => setIsEditingPrompt(false)}
-                        className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30 resize-none"
-                        rows={6}
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="relative">
-                        <div className="p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm leading-relaxed min-h-[120px]">
-                          {imagePrompt}
-                        </div>
-                        <button
-                          onClick={() => setIsEditingPrompt(true)}
-                          className="absolute top-2 right-2 p-1 rounded hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Metadatos Adicionales */}
-                  <div className="space-y-3 pt-2 border-t border-[#404040]">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#a0a0a0]">Agregado:</span>
-                      <span className="text-sm text-[#f8f8f8]">Hoy</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#a0a0a0]">Categoría:</span>
-                      <span className="text-sm text-[#f8f8f8]">Referencia</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#a0a0a0]">Uso:</span>
-                      <span className="text-sm text-[#f8f8f8]">0 proyectos</span>
-                    </div>
-                  </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                  Máx. 10MB
                 </div>
-
-                {/* Botones de Acción */}
-                <div className="p-6 border-t border-[#404040] space-y-3">
-                  <button
-                    onClick={copyPrompt}
-                    className="w-full bg-[#E55A2B] hover:bg-[#D4502A] text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors shadow-sm"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-5 h-5" />
-                        <span>¡Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-5 h-5" />
-                        <span>Copiar Prompt</span>
-                      </>
-                    )}
-                  </button>
-                  
-                  <div className="flex space-x-3">
-                    <button className="flex-1 bg-[#404040] hover:bg-[#4a4a4a] text-[#f8f8f8] py-2 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors">
-                      <Edit2 className="w-4 h-4" />
-                      <span>Editar</span>
-                    </button>
-                    <Dialog.Close asChild>
-                      <button className="flex-1 bg-[#2a2a2a] hover:bg-[#333333] text-[#a0a0a0] border border-[#404040] py-2 px-4 rounded-lg font-medium transition-colors">
-                        Cerrar
-                      </button>
-                    </Dialog.Close>
-                  </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  IA incluida
                 </div>
               </div>
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredImages.map((image, index) => (
+                <motion.div
+                  key={image.filename}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group"
+                >
+                  <div className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden group-hover:scale-[1.02] transform">
+                    <div className="relative">
+                      <img
+                        src={`/uploads/referencias/${image.filename}`}
+                        alt={image.name}
+                        className="w-full h-48 object-cover cursor-pointer"
+                        onClick={() => setSelectedImage(image)}
+                      />
+                      <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
+                        {formatFileSize(image.size)}
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-semibold text-gray-900 mb-2 text-lg">
+                        {image.name}
+                      </h3>
+                      {image.prompt && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {image.prompt}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-1">
+                          {image.tags.slice(0, 3).map((tag, i) => (
+                            <span
+                              key={i}
+                              className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-medium"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {image.tags.length > 3 && (
+                            <span className="text-xs text-gray-500 px-2 py-1">
+                              +{image.tags.length - 3}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-1 text-xs text-gray-500">
+                          <Calendar className="h-3 w-3" />
+                          <span>{formatDate(image.uploadDate)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-      {/* Modal de Configuración de Upload */}
-      <Dialog.Root open={showUploadConfig} onOpenChange={setShowUploadConfig}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50" />
-          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Upload Modal */}
+      <AnimatePresence>
+        {uploadModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
             <motion.div
-              className="bg-[#2a2a2a] rounded-2xl shadow-2xl border border-[#404040] w-full max-w-2xl max-h-[90vh] overflow-hidden"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl"
             >
-              {/* Header */}
-              <div className="p-6 border-b border-[#404040]">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-medium text-[#f8f8f8]">Configurar Nueva Referencia</h2>
-                  <button
-                    onClick={cancelUpload}
-                    className="w-8 h-8 rounded-lg bg-[#404040] hover:bg-[#4a4a4a] flex items-center justify-center text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
-                {/* Preview de la Imagen */}
-                {uploadPreview && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#a0a0a0]">Preview</label>
-                    <div className="relative w-full h-48 bg-[#1e1e1e] rounded-xl overflow-hidden">
-                      <Image
-                        src={uploadPreview}
-                        alt="Upload preview"
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Nombre de la Imagen */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#a0a0a0]">Nombre de la imagen</label>
-                  <input
-                    type="text"
-                    value={uploadTitle}
-                    onChange={(e) => setUploadTitle(e.target.value)}
-                    className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
-                    placeholder="Ingresa el nombre de la imagen..."
-                  />
-                </div>
-
-                {/* Nombre del Prompt */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#a0a0a0]">Nombre del prompt</label>
-                  <input
-                    type="text"
-                    value={uploadPromptName}
-                    onChange={(e) => setUploadPromptName(e.target.value)}
-                    className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
-                    placeholder="Ingresa el nombre del prompt..."
-                  />
-                </div>
-
-                {/* Prompt Completo */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#a0a0a0]">Prompt completo</label>
-                  <textarea
-                    value={uploadPrompt}
-                    onChange={(e) => setUploadPrompt(e.target.value)}
-                    className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30 resize-none"
-                    rows={4}
-                    placeholder="Describe el prompt para esta imagen..."
-                  />
-                </div>
-              </div>
-
-              {/* Botones de Acción */}
-              <div className="p-6 border-t border-[#404040] flex space-x-3">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">
+                  ✨ Agregar a tu galería
+                </h3>
                 <button
-                  onClick={cancelUpload}
-                  className="flex-1 bg-[#404040] hover:bg-[#4a4a4a] text-[#f8f8f8] py-3 px-4 rounded-lg font-medium transition-colors"
-                  disabled={isUploading}
+                  onClick={() => setUploadModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              {pendingFile && (
+                <div className="mb-6">
+                  <img
+                    src={URL.createObjectURL(pendingFile)}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-xl"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nombre de la imagen
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadModalData.name}
+                    onChange={(e) =>
+                      setUploadModalData({ ...uploadModalData, name: e.target.value })
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Nombre descriptivo..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Prompt creativo
+                  </label>
+                  <textarea
+                    value={uploadModalData.prompt}
+                    onChange={(e) =>
+                      setUploadModalData({ ...uploadModalData, prompt: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Describe cómo usar esta imagen..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tags (separados por comas)
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadModalData.tags}
+                    onChange={(e) =>
+                      setUploadModalData({ ...uploadModalData, tags: e.target.value })
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="diseño, retrato, digital, minimalista..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-8">
+                <button
+                  onClick={() => setUploadModalOpen(false)}
+                  className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors font-medium"
+                  disabled={uploading}
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={saveUploadedImage}
-                  disabled={isUploading || !uploadTitle.trim()}
-                  className="flex-1 bg-[#E55A2B] hover:bg-[#D4502A] disabled:bg-[#6a6a6a] disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors"
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 disabled:opacity-50 font-medium shadow-lg"
                 >
-                  {isUploading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Guardando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      <span>Guardar</span>
-                    </>
-                  )}
+                  {uploading ? 'Subiendo...' : 'Agregar a Galería'}
                 </button>
               </div>
             </motion.div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Main Content */}
-      <main className="px-8 py-8">
-        {/* Hero Section */}
-        <motion.div 
-          className="text-center mb-12"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.h1 
-            className="text-4xl sm:text-5xl font-medium text-gray-800 mb-4 tracking-tight"
-            variants={itemVariants}
+      {/* Image Detail Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           >
-            Estudio Creativo
-          </motion.h1>
-          <motion.p 
-            className="text-xl text-gray-600 max-w-2xl mx-auto"
-            variants={itemVariants}
-          >
-            Organiza, inspira y crea con una plataforma diseñada para potenciar tu creatividad
-          </motion.p>
-        </motion.div>
-
-        {/* Enhanced Main Grid - More Visual Space */}
-        <motion.div 
-          className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Referencias Visuales con Drag & Drop */}
-          <motion.div 
-            className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
-            variants={cardVariants}
-            whileHover={{ y: -4, scale: 1.01 }}
-          >
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-[#E55A2B] rounded-xl flex items-center justify-center shadow-sm">
-                    <ImageIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-medium text-gray-800">Referencias Visuales</h3>
-                </div>
-                <motion.button 
-                  className="w-10 h-10 bg-[#E55A2B] rounded-full flex items-center justify-center text-white hover:bg-[#D4502A] transition-all duration-200 shadow-sm"
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Plus className="w-5 h-5" />
-                </motion.button>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-6xl max-h-[90vh] overflow-hidden flex shadow-2xl"
+            >
+              {/* Image Panel */}
+              <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50 p-8">
+                <img
+                  src={`/uploads/referencias/${selectedImage.filename}`}
+                  alt={selectedImage.name}
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-lg"
+                />
               </div>
-              <p className="text-gray-600 mb-8">
-                Colecciona y organiza imágenes inspiradoras para tus proyectos creativos
-              </p>
-              
-              {/* Zona de Drag & Drop */}
-              <div
-                ref={dropZoneRef}
-                className={`relative mb-8 rounded-xl overflow-hidden transition-all duration-300 ${
-                  isDragging 
-                    ? 'border-2 border-dashed border-[#E55A2B] bg-[#E55A2B]/5' 
-                    : ''
-                }`}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-              >
-                {isDragging && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#E55A2B]/10 backdrop-blur-sm">
-                    <div className="text-center p-6">
-                      <Upload className="w-12 h-12 text-[#E55A2B] mx-auto mb-3" />
-                      <p className="text-[#E55A2B] font-medium text-lg mb-1">¡Suelta la imagen aquí!</p>
-                      <p className="text-gray-600 text-sm">Se abrirá la configuración automáticamente</p>
-                    </div>
-                  </div>
+
+              {/* Metadata Panel */}
+              <div className="w-96 bg-white p-8 overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Detalles de la imagen
+                  </h3>
+                  <button
+                    onClick={() => setSelectedImage(null)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {editingMetadata?.filename === selectedImage.filename ? (
+                  <EditMetadataForm
+                    metadata={editingMetadata}
+                    onChange={setEditingMetadata}
+                    onSave={handleSaveMetadata}
+                    onCancel={() => setEditingMetadata(null)}
+                    onImprovePrompt={handleImprovePrompt}
+                    improvingPrompt={improvingPrompt}
+                    improvedPrompt={improvedPrompt}
+                    promptError={promptError}
+                    onApplyImprovedPrompt={(metadata) => {
+                      setEditingMetadata(metadata);
+                      setImprovedPrompt(null);
+                    }}
+                    onDiscardImprovedPrompt={() => setImprovedPrompt(null)}
+                  />
+                ) : (
+                  <ViewMetadata
+                    metadata={selectedImage}
+                    onEdit={() => setEditingMetadata({ ...selectedImage })}
+                    onCopyPrompt={handleCopyPrompt}
+                    copiedPrompt={copiedPrompt}
+                    onImprovePrompt={handleImprovePrompt}
+                    improvingPrompt={improvingPrompt}
+                    improvedPrompt={improvedPrompt}
+                    promptError={promptError}
+                    onApplyImprovedPrompt={handleApplyImprovedPrompt}
+                    onDiscardImprovedPrompt={() => setImprovedPrompt(null)}
+                  />
                 )}
-                
-                {/* Grid uniforme de imágenes reales - sin espacios */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-0 rounded-xl overflow-hidden">
-                  {referencias.slice(0, 6).map((imagen, index) => (
-                    <motion.div
-                      key={imagen}
-                      className="relative aspect-square overflow-hidden cursor-pointer transition-all duration-300"
-                      whileHover={{ scale: 1.02, zIndex: 10 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => openImageModal(imagen)}
-                      title={imagen.replace('.jpeg', '').replace(/-/g, ' ')}
-                    >
-                      <Image
-                        src={imagen.startsWith('upload-') 
-                          ? uploadPreview || `/uploads/referencias/${imagen}` 
-                          : `/uploads/referencias/${imagen}`
-                        }
-                        alt={imagen}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 33vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                    </motion.div>
-                  ))}
-                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Componente para ver metadatos
+function ViewMetadata({
+  metadata,
+  onEdit,
+  onCopyPrompt,
+  copiedPrompt,
+  onImprovePrompt,
+  improvingPrompt,
+  improvedPrompt,
+  promptError,
+  onApplyImprovedPrompt,
+  onDiscardImprovedPrompt
+}: {
+  metadata: ImageMetadata;
+  onEdit: () => void;
+  onCopyPrompt: (prompt: string) => void;
+  copiedPrompt: string | null;
+  onImprovePrompt: (currentPrompt: string, metadata: ImageMetadata) => void;
+  improvingPrompt: boolean;
+  improvedPrompt: string | null;
+  promptError: string | null;
+  onApplyImprovedPrompt: (metadata: ImageMetadata) => void;
+  onDiscardImprovedPrompt: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h4 className="text-lg font-bold text-gray-900">{metadata.name}</h4>
+        <button
+          onClick={onEdit}
+          className="p-2 text-orange-500 hover:bg-orange-50 rounded-full transition-colors"
+        >
+          <Edit2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center text-sm text-gray-600">
+          <Calendar className="h-4 w-4 mr-2 text-orange-500" />
+          {new Date(metadata.uploadDate).toLocaleDateString('es-ES')}
+        </div>
+
+        <div className="flex items-center text-sm text-gray-600">
+          <FileText className="h-4 w-4 mr-2 text-orange-500" />
+          {formatFileSize(metadata.size)}
+        </div>
+
+        {metadata.tags.length > 0 && (
+          <div>
+            <div className="flex items-center text-sm text-gray-600 mb-2">
+              <Tag className="h-4 w-4 mr-2 text-orange-500" />
+              Tags
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {metadata.tags.map((tag, i) => (
+                <span
+                  key={i}
+                  className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full font-medium"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sección de Prompts */}
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-200">
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="text-sm font-bold text-gray-900">✨ Prompt Creativo</h5>
+            <div className="flex items-center space-x-2">
+              {metadata.prompt && (
+                <button
+                  onClick={() => onCopyPrompt(metadata.prompt)}
+                  className="text-orange-500 hover:text-orange-600 p-1 rounded transition-colors"
+                  title="Copiar prompt"
+                >
+                  {copiedPrompt === metadata.prompt ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              )}
+              {metadata.prompt && (
+                <button
+                  onClick={() => onImprovePrompt(metadata.prompt, metadata)}
+                  disabled={improvingPrompt}
+                  className="px-3 py-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  title="Mejorar prompt con IA"
+                >
+                  {improvingPrompt ? (
+                    <div className="flex items-center space-x-1">
+                      <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
+                      <span>Mejorando...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Mejorar con IA</span>
+                    </div>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {metadata.prompt ? (
+            <div className="space-y-3">
+              <div>
+                <span className="text-xs text-gray-600 font-medium">Prompt actual:</span>
+                <p className="text-sm text-gray-700 bg-white p-3 rounded-lg border mt-1">
+                  {metadata.prompt}
+                </p>
               </div>
               
-              <motion.p 
-                className="text-sm text-gray-500 font-medium flex items-center justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
+              {/* Prompt mejorado */}
+              {improvedPrompt && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-green-800 font-medium">🤖 Prompt mejorado por IA:</span>
+                    <button
+                      onClick={() => onCopyPrompt(improvedPrompt)}
+                      className="text-green-600 hover:text-green-700 p-1 rounded transition-colors"
+                      title="Copiar prompt mejorado"
+                    >
+                      {copiedPrompt === improvedPrompt ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-sm text-green-900 bg-white p-3 rounded-lg border mb-3">
+                    {improvedPrompt}
+                  </p>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onApplyImprovedPrompt(metadata)}
+                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-full hover:bg-green-700 transition-colors font-medium"
+                    >
+                      Aplicar y Guardar
+                    </button>
+                    <button
+                      onClick={onDiscardImprovedPrompt}
+                      className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded-full hover:bg-gray-400 transition-colors font-medium"
+                    >
+                      Descartar
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Error de prompt */}
+              {promptError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <span className="text-xs text-red-800 font-medium">Error:</span>
+                  <p className="text-sm text-red-700 mt-1">{promptError}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500 mb-2">No hay prompt asociado</p>
+              <button
+                onClick={onEdit}
+                className="text-orange-500 hover:text-orange-600 text-sm font-medium"
               >
-                <span className="bg-[#E55A2B] w-2 h-2 rounded-full mr-2"></span>
-                {referencias.length} imágenes guardadas
-              </motion.p>
+                Agregar prompt
+              </button>
             </div>
-          </motion.div>
-
-          {/* Biblioteca de Prompts */}
-          <motion.div 
-            className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
-            variants={cardVariants}
-            whileHover={{ y: -4, scale: 1.01 }}
-          >
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-[#8B7355] rounded-xl flex items-center justify-center shadow-sm">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-medium text-gray-800">Biblioteca de Prompts</h3>
-                </div>
-                <motion.button 
-                  className="w-10 h-10 bg-[#8B7355] rounded-full flex items-center justify-center text-white hover:bg-[#7A6349] transition-all duration-200 shadow-sm"
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Plus className="w-5 h-5" />
-                </motion.button>
-              </div>
-              <p className="text-gray-600 mb-8">
-                Guarda y organiza prompts efectivos para diferentes tipos de contenido
-              </p>
-              <div className="space-y-4 mb-6">
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-l-4 border-[#8B7355]">
-                  <p className="text-sm font-medium text-gray-800">Diseño de Logo</p>
-                  <p className="text-xs text-gray-600 mt-1">Crear logo minimalista y moderno...</p>
-                </div>
-                <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border-l-4 border-[#E55A2B]">
-                  <p className="text-sm font-medium text-gray-800">Contenido Web</p>
-                  <p className="text-xs text-gray-600 mt-1">Escribir copy persuasivo para...</p>
-                </div>
-                <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-l-4 border-[#D4AF37]">
-                  <p className="text-sm font-medium text-gray-800">Ilustración</p>
-                  <p className="text-xs text-gray-600 mt-1">Generar ilustración estilo...</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 font-medium">8 prompts guardados</p>
-            </div>
-          </motion.div>
-
-          {/* Proyectos Creativos */}
-          <motion.div 
-            className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
-            variants={cardVariants}
-            whileHover={{ y: -4, scale: 1.01 }}
-          >
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-[#D4AF37] rounded-xl flex items-center justify-center shadow-sm">
-                    <Lightbulb className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-medium text-gray-800">Proyectos Creativos</h3>
-                </div>
-                <motion.button 
-                  className="w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center text-white hover:bg-[#C49B2A] transition-all duration-200 shadow-sm"
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Plus className="w-5 h-5" />
-                </motion.button>
-              </div>
-              <p className="text-gray-600 mb-8">
-                Combina referencias y prompts en proyectos creativos completos
-              </p>
-              <div className="space-y-4 mb-6">
-                <div className="p-5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-800">Branding Restaurante</h4>
-                    <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">En progreso</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-7 h-7 bg-gradient-to-r from-orange-400 to-red-400 rounded-lg"></div>
-                    <div className="w-7 h-7 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-lg"></div>
-                    <div className="w-7 h-7 bg-gradient-to-r from-green-400 to-teal-400 rounded-lg"></div>
-                    <span className="text-xs text-gray-500 font-medium">+5 elementos</span>
-                  </div>
-                </div>
-                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-800">App Móvil</h4>
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-medium">Planificando</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-7 h-7 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg"></div>
-                    <div className="w-7 h-7 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg"></div>
-                    <span className="text-xs text-gray-500 font-medium">+3 elementos</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 font-medium">3 proyectos activos</p>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Enhanced Quick Stats */}
-        <motion.div 
-          className="grid grid-cols-2 lg:grid-cols-4 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div 
-            className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-            variants={itemVariants}
-          >
-            <div className="text-3xl font-medium text-[#E55A2B] mb-2">{referencias.length}</div>
-            <div className="text-sm text-gray-600 font-medium">Referencias</div>
-          </motion.div>
-          <motion.div 
-            className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-            variants={itemVariants}
-          >
-            <div className="text-3xl font-medium text-[#8B7355] mb-2">15</div>
-            <div className="text-sm text-gray-600 font-medium">Prompts</div>
-          </motion.div>
-          <motion.div 
-            className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-            variants={itemVariants}
-          >
-            <div className="text-3xl font-medium text-[#D4AF37] mb-2">8</div>
-            <div className="text-sm text-gray-600 font-medium">Proyectos</div>
-          </motion.div>
-          <motion.div 
-            className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-            variants={itemVariants}
-          >
-            <div className="text-3xl font-medium text-[#8B7355] mb-2">42</div>
-            <div className="text-sm text-gray-600 font-medium">Creaciones</div>
-          </motion.div>
-        </motion.div>
-      </main>
+          )}
+        </div>
+      </div>
     </div>
-  )
+  );
+}
+
+// Componente para editar metadatos
+function EditMetadataForm({
+  metadata,
+  onChange,
+  onSave,
+  onCancel,
+  onImprovePrompt,
+  improvingPrompt,
+  improvedPrompt,
+  promptError,
+  onApplyImprovedPrompt,
+  onDiscardImprovedPrompt
+}: {
+  metadata: ImageMetadata;
+  onChange: (metadata: ImageMetadata) => void;
+  onSave: (metadata: ImageMetadata) => void;
+  onCancel: () => void;
+  onImprovePrompt: (currentPrompt: string, metadata: ImageMetadata) => void;
+  improvingPrompt: boolean;
+  improvedPrompt: string | null;
+  promptError: string | null;
+  onApplyImprovedPrompt: (metadata: ImageMetadata) => void;
+  onDiscardImprovedPrompt: () => void;
+}) {
+  const handleTagsChange = (tagsString: string) => {
+    const tags = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
+    onChange({ ...metadata, tags });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Nombre
+        </label>
+        <input
+          type="text"
+          value={metadata.name}
+          onChange={(e) => onChange({ ...metadata, name: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Prompt
+          </label>
+          {metadata.prompt && (
+            <button
+              onClick={() => onImprovePrompt(metadata.prompt, metadata)}
+              disabled={improvingPrompt}
+              className="px-3 py-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              title="Mejorar prompt con IA"
+            >
+              {improvingPrompt ? (
+                <div className="flex items-center space-x-1">
+                  <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
+                  <span>Mejorando...</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Mejorar con IA</span>
+                </div>
+              )}
+            </button>
+          )}
+        </div>
+        <textarea
+          value={metadata.prompt}
+          onChange={(e) => onChange({ ...metadata, prompt: e.target.value })}
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          placeholder="Describe el uso creativo de esta imagen..."
+        />
+        
+        {/* Prompt mejorado */}
+        {improvedPrompt && (
+          <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-green-800 font-medium">🤖 Prompt mejorado por IA:</span>
+            </div>
+            <p className="text-sm text-green-900 bg-white p-3 rounded-lg border mb-3">
+              {improvedPrompt}
+            </p>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => onApplyImprovedPrompt({ ...metadata, prompt: improvedPrompt })}
+                className="px-3 py-1 bg-green-600 text-white text-xs rounded-full hover:bg-green-700 transition-colors font-medium"
+              >
+                Aplicar
+              </button>
+              <button
+                onClick={onDiscardImprovedPrompt}
+                className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded-full hover:bg-gray-400 transition-colors font-medium"
+              >
+                Descartar
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Error de prompt */}
+        {promptError && (
+          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+            <span className="text-xs text-red-800 font-medium">Error:</span>
+            <p className="text-sm text-red-700 mt-1">{promptError}</p>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Tags (separados por comas)
+        </label>
+        <input
+          type="text"
+          value={metadata.tags.join(', ')}
+          onChange={(e) => handleTagsChange(e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+      </div>
+
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={onCancel}
+          className="px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors font-medium"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={() => onSave(metadata)}
+          className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 font-medium shadow-lg"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  );
 } 

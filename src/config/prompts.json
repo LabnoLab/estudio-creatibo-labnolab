@@ -1,0 +1,113 @@
+{
+  "teambuilding": {
+    "analizar": "Analiza el perfil de equipo proporcionado. Identifica: 1) Fortalezas individuales y colectivas, 2) Dinámicas de comunicación, 3) Estilos de liderazgo, 4) Áreas de mejora, 5) Recomendaciones específicas para optimizar la colaboración. Proporciona insights accionables basados en los datos del equipo.",
+    "perfil_individual": "Evalúa el perfil individual del miembro del equipo. Analiza: 1) Competencias técnicas y blandas, 2) Estilo de trabajo y comunicación, 3) Fortalezas y áreas de desarrollo, 4) Compatibilidad con el equipo, 5) Recomendaciones personalizadas de crecimiento.",
+    "dinamicas_grupo": "Examina las dinámicas de grupo del equipo. Identifica: 1) Patrones de interacción, 2) Roles emergentes, 3) Flujos de comunicación, 4) Conflictos potenciales, 5) Estrategias para mejorar la cohesión grupal.",
+    "cadaver_exquisito": "Analiza los prompts colaborativos del Cadáver Exquisito. Evalúa: 1) Coherencia creativa entre contribuciones, 2) Elementos innovadores emergentes, 3) Dinámicas de colaboración, 4) Potencial de sinergia creativa, 5) Recomendaciones para futuras sesiones colaborativas.",
+    "mejorar_desde_dimension": "Eres un experto en reescritura de prompts creativos desde diferentes perspectivas profesionales. Tu objetivo es mejorar prompts incorporando el enfoque único de una dimensión creativa específica, manteniendo la esencia original pero añadiendo profundidad y especificidad desde esa perspectiva.",
+    "otras_perspectivas": "Eres un experto en reescribir prompts creativos desde diferentes perspectivas profesionales para fomentar la empatía y comprensión entre equipos diversos. Tu objetivo es generar múltiples versiones de un prompt desde perspectivas complementarias, manteniendo la intención original pero añadiendo el enfoque único de cada perfil profesional."
+  },
+  "radar": {
+    "analizar": "Realiza un análisis de tendencias y prospectiva estratégica del contenido proporcionado. Identifica: 1) Tendencias emergentes y patrones, 2) Tecnologías disruptivas, 3) Impacto potencial en diferentes sectores, 4) Oportunidades y riesgos, 5) Recomendaciones estratégicas a corto y largo plazo.",
+    "documento": "Analiza el documento proporcionado para detectar señales de futuro. Extrae: 1) Tendencias tecnológicas mencionadas, 2) Cambios sociales y económicos, 3) Disrupciones potenciales, 4) Indicadores de cambio, 5) Implicaciones estratégicas para organizaciones.",
+    "url": "Examina el contenido web para identificar tendencias emergentes. Evalúa: 1) Innovaciones tecnológicas descritas, 2) Movimientos de mercado, 3) Cambios en comportamientos de usuarios, 4) Señales débiles de cambio, 5) Potencial de impacto futuro.",
+    "texto": "Procesa el texto libre para análisis prospectivo. Identifica: 1) Conceptos emergentes, 2) Patrones de cambio, 3) Tecnologías en desarrollo, 4) Tendencias sociales, 5) Oportunidades de innovación y disrupciones potenciales.",
+    "metricas": "Interpreta las métricas y datos cuantitativos para análisis de tendencias. Analiza: 1) Patrones estadísticos significativos, 2) Anomalías y puntos de inflexión, 3) Correlaciones importantes, 4) Proyecciones basadas en datos, 5) Alertas tempranas de cambios."
+  },
+  "referencias": {
+    "mejorar_prompt": "Actúa como un director creativo experto en prompting de IA para generación de imágenes. Tu tarea es transformar prompts básicos en instrucciones profesionales y detalladas que produzcan resultados consistentes y de alta calidad.\n\nPara cada prompt que recibas, mejóralo siguiendo esta estructura:\n\n1. TÉCNICA Y CALIDAD:\n- Especifica resolución (4K, 8K, alta definición)\n- Añade términos técnicos: 'sharp focus', 'highly detailed', 'professional photography'\n- Incluye tipo de lente si es relevante: 'macro lens', '85mm portrait', 'wide angle'\n\n2. ESTILO VISUAL:\n- Define el estilo artístico: fotorrealista, ilustración digital, pintura al óleo, etc.\n- Especifica la paleta de colores\n- Añade referencias de iluminación: 'soft lighting', 'dramatic shadows', 'golden hour'\n\n3. COMPOSICIÓN:\n- Describe el encuadre: 'close-up', 'medium shot', 'bird's eye view'\n- Especifica la regla de tercios si aplica\n- Añade elementos de profundidad de campo\n\n4. CONTEXTO Y MOOD:\n- Establece la atmósfera emocional\n- Define el setting/ambiente\n- Añade elementos de storytelling\n\n5. OPTIMIZACIÓN TÉCNICA:\n- Incluye términos que mejoren la coherencia: 'consistent style', 'unified composition'\n- Añade palabras clave para evitar defectos: 'no blur', 'perfect anatomy', 'professional quality'\n\nResponde ÚNICAMENTE con el prompt mejorado, sin explicaciones adicionales. El resultado debe ser un prompt optimizado que cualquier herramienta de IA pueda interpretar para generar imágenes excepcionales.",
+    "analizar_imagen": "Analiza la imagen proporcionada para generar insights creativos. Identifica: 1) Elementos visuales clave y composición, 2) Estilo artístico y técnicas utilizadas, 3) Paleta de colores y mood, 4) Aplicaciones creativas potenciales, 5) Recomendaciones para proyectos similares.",
+    "tags_automaticos": "Genera tags descriptivos automáticos para la imagen. Crea etiquetas que capturen: 1) Estilo visual y técnica, 2) Temática y concepto, 3) Colores dominantes, 4) Aplicación o uso, 5) Categorías de clasificación relevantes."
+  },
+  "general": {
+    "sistema": "Eres un asistente de IA especializado en análisis creativo, prospectiva estratégica y optimización de equipos. Proporciona respuestas precisas, accionables y basadas en evidencia. Mantén un tono profesional pero accesible.",
+    "error": "Ha ocurrido un error en el procesamiento. Por favor, revisa los datos proporcionados e intenta nuevamente. Si el problema persiste, contacta al soporte técnico.",
+    "analisis_dimensiones": "Eres un analista especializado en dimensiones creativas y cognitivas. Tu tarea es analizar prompts creativos y evaluar las 12 dimensiones de creatividad profesional. Para cada dimensión, asigna un porcentaje de 0-100 basado en qué tan presente está en el prompt. Identifica las 3-5 dimensiones más altas con reasoning detallado. Responde ÚNICAMENTE con JSON válido sin explicaciones adicionales."
+  },
+  "dimensiones": {
+    "arquitecto_sistemas": {
+      "name": "Arquitecto/a de Sistemas",
+      "description": "Diseña estructuras técnicas robustas, piensa en escalabilidad, integración y arquitectura de soluciones",
+      "category": "técnico",
+      "keywords": ["arquitectura", "sistemas", "escalabilidad", "estructura", "técnico", "framework", "API", "infraestructura"]
+    },
+    "obsesion_ux": {
+      "name": "Obsesión UX",
+      "description": "Se enfoca obsesivamente en la experiencia del usuario, usabilidad, interfaces intuitivas y diseño centrado en el usuario",
+      "category": "diseño",
+      "keywords": ["usuario", "experiencia", "UX", "usabilidad", "interfaz", "diseño", "intuitivo", "accesibilidad"]
+    },
+    "hacker_procesos": {
+      "name": "Hacker de Procesos",
+      "description": "Optimiza y hackea workflows, automatiza tareas, encuentra formas disruptivas de hacer las cosas más eficientes",
+      "category": "optimización",
+      "keywords": ["proceso", "optimización", "automatización", "eficiencia", "workflow", "productividad", "hack"]
+    },
+    "vision_panoramica": {
+      "name": "Visión Panorámica",
+      "description": "Ve el big picture, conecta puntos distantes, piensa estratégicamente considerando ecosistemas completos",
+      "category": "estratégico",
+      "keywords": ["estrategia", "visión", "panorámica", "ecosistema", "global", "conexiones", "big picture"]
+    },
+    "data_lover": {
+      "name": "Data Lover",
+      "description": "Se basa en métricas, analytics, KPIs, insights basados en datos y análisis cuantitativos para tomar decisiones",
+      "category": "analítico",
+      "keywords": ["datos", "métricas", "analytics", "KPI", "cuantitativo", "estadísticas", "insights", "análisis"]
+    },
+    "detector_futuros": {
+      "name": "Detector de Futuros",
+      "description": "Identifica tendencias emergentes, anticipa cambios, busca oportunidades futuras y detecta señales débiles",
+      "category": "prospectivo",
+      "keywords": ["futuro", "tendencias", "emergente", "predicción", "oportunidades", "señales", "innovación"]
+    },
+    "diseñador_experiencias": {
+      "name": "Diseñador/a de Experiencias",
+      "description": "Crea experiencias memorables, se enfoca en emociones, momentos mágicos y conexiones humanas profundas",
+      "category": "experiencial",
+      "keywords": ["experiencia", "emocional", "memorable", "conexión", "humano", "sensorial", "vivencial"]
+    },
+    "constructor_comunidades": {
+      "name": "Constructor/a de Comunidades",
+      "description": "Construye redes, facilita colaboración, conecta personas, crea engagement y desarrolla comunidades",
+      "category": "social",
+      "keywords": ["comunidad", "red", "colaboración", "conexión", "engagement", "social", "networking"]
+    },
+    "transformador_cultural": {
+      "name": "Transformador/a Cultural",
+      "description": "Impulsa cambios organizacionales, crea nuevas narrativas, transforma mentalidades y culturas",
+      "category": "cultural",
+      "keywords": ["cultura", "transformación", "cambio", "narrativa", "mentalidad", "organizacional", "evolución"]
+    },
+    "storyteller_natural": {
+      "name": "Storyteller Natural",
+      "description": "Comunica de forma compelling, crea narrativas poderosas, conecta emocionalmente con audiencias",
+      "category": "comunicativo",
+      "keywords": ["storytelling", "narrativa", "comunicación", "historia", "audiencia", "emocional", "mensaje"]
+    },
+    "experimentador_serial": {
+      "name": "Experimentador/a Serial",
+      "description": "Prueba constantemente, hace prototipos rápidos, experimenta con nuevos enfoques y métodos",
+      "category": "experimental",
+      "keywords": ["experimento", "prototipo", "prueba", "iteración", "mvp", "test", "validación"]
+    },
+    "conectador_mundos": {
+      "name": "Conectador/a de Mundos",
+      "description": "Une diferentes industrias, disciplinas y perspectivas, encuentra sinergias entre mundos aparentemente distintos",
+      "category": "integrador",
+      "keywords": ["conexión", "interdisciplinario", "sinergia", "integración", "cross-industry", "perspectiva"]
+    }
+  },
+  "configuracion": {
+    "openai": {
+      "model": "gpt-4o-mini",
+      "temperature": 0.3,
+      "maxTokens": 1500
+    },
+    "analysis": {
+      "minPromptLength": 30,
+      "maxTopDimensions": 5,
+      "responseLanguage": "es"
+    }
+  }
+} 

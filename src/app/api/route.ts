@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { getAnalysisConfig } from '../../lib/prompts';
 
-// Tipo para la configuración
+// Tipo para la configuración (actualizado para compatibilidad)
 export interface AnalysisConfig {
   settings: {
     openai: {
@@ -32,18 +31,35 @@ export interface AnalysisConfig {
   };
 }
 
-// Función para cargar la configuración
-function loadAnalysisConfig(): AnalysisConfig {
+// Función para cargar la configuración desde prompts.json
+async function loadAnalysisConfig(): Promise<AnalysisConfig> {
   try {
-    const configPath = join(process.cwd(), 'src', 'config', 'analysis-config.json');
-    const configFile = readFileSync(configPath, 'utf8');
-    const config = JSON.parse(configFile) as AnalysisConfig;
+    const config = await getAnalysisConfig();
     
-    console.log('📋 [CONFIG] Configuración cargada exitosamente');
+    console.log('📋 [CONFIG] Configuración cargada exitosamente desde prompts.json');
     console.log('📊 [CONFIG] Dimensiones disponibles:', config.dimensions.length);
     console.log('🤖 [CONFIG] Modelo:', config.settings.openai.model);
     
-    return config;
+    return {
+      settings: config.settings,
+      systemPrompt: config.systemPrompt,
+      dimensions: config.dimensions,
+      responseFormat: {
+        schema: {
+          type: "object",
+          properties: {
+            dimensions: {
+              type: "object",
+              description: "Porcentajes de 0-100 para cada dimensión"
+            },
+            topDimensions: {
+              type: "array",
+              description: "Array con las 3-5 dimensiones más altas con reasoning"
+            }
+          }
+        }
+      }
+    };
   } catch (error: any) {
     console.error('❌ [CONFIG] Error cargando configuración:', error.message);
     throw new Error(`No se pudo cargar la configuración: ${error.message}`);
@@ -121,7 +137,7 @@ export async function POST(request: NextRequest) {
     console.log('🚀 [ANALYZE API] Iniciando análisis...');
     
     // Cargar configuración
-    const config = loadAnalysisConfig();
+    const config = await loadAnalysisConfig();
     
     const { prompt } = await request.json();
     console.log('📝 [ANALYZE API] Prompt length:', prompt?.length);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getPrompt } from '../../../lib/prompts';
 
 // Inicializar cliente OpenAI
 const openai = new OpenAI({
@@ -40,8 +41,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear prompt del sistema para mejora
-    const systemPrompt = `Eres un experto en reescritura de prompts creativos desde diferentes perspectivas profesionales.
+    // Cargar prompt del sistema desde JSON
+    const baseSystemPrompt = await getPrompt('teambuilding', 'mejorar_desde_dimension');
+    
+    // Crear prompt del sistema personalizado para esta dimensión
+    const systemPrompt = `${baseSystemPrompt}
 
 Tu tarea es reescribir el prompt del usuario desde la perspectiva de un "${dominantDimension.label}".
 

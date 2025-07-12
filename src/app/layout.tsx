@@ -5,7 +5,7 @@ import "./globals.css";
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Home, Palette, TrendingUp, Users, ChevronRight, Menu, X } from 'lucide-react'
+import { Home, Palette, TrendingUp, Users, User, Settings, ChevronRight, ChevronDown, Feather } from 'lucide-react'
 import { useState } from 'react'
 
 const geistSans = Geist({
@@ -18,171 +18,218 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Navegación principal
+// Navegación principal con subsecciones
 const navigation = [
-  { name: 'Hub Central', href: '/', icon: Home },
-  { name: 'Estudio Creativo', href: '/referencias', icon: Palette },
-  { name: 'Radar de Futuros', href: '/radar', icon: TrendingUp },
-  { name: 'Team Building', href: '/teambuilding', icon: Users },
+  { 
+    name: 'Hub Central', 
+    href: '/', 
+    icon: Home,
+    subsections: []
+  },
+  { 
+    name: 'Estudio Creativo', 
+    href: '/referencias', 
+    icon: Palette,
+    subsections: [
+      { name: 'Referencias', href: '/referencias' },
+      { name: 'Proyectos', href: '/referencias/proyectos' },
+      { name: 'Inspiración', href: '/referencias/inspiracion' }
+    ]
+  },
+  { 
+    name: 'Radar de Futuros', 
+    href: '/radar', 
+    icon: TrendingUp,
+    subsections: [
+      { name: 'Análisis', href: '/radar' },
+      { name: 'Tendencias', href: '/radar/tendencias' },
+      { name: 'Reportes', href: '/radar/reportes' }
+    ]
+  },
+  { 
+    name: 'Team Building', 
+    href: '/teambuilding', 
+    icon: Users,
+    subsections: [
+      { name: 'Análisis Individual', href: '/teambuilding' },
+      { name: 'Dinámicas', href: '/teambuilding/dinamicas' },
+      { name: 'Resultados', href: '/teambuilding/resultados' }
+    ]
+  },
+  { 
+    name: 'Analizador de Poesía', 
+    href: '/poesia', 
+    icon: Feather,
+    subsections: [
+      { name: 'Análisis Forense', href: '/poesia' },
+      { name: 'Biblioteca', href: '/poesia/biblioteca' },
+      { name: 'Historial', href: '/poesia/historial' }
+    ]
+  },
 ]
 
-// Función para generar breadcrumbs
-function getBreadcrumbs(pathname: string) {
-  const segments = pathname.split('/').filter(Boolean)
-  const breadcrumbs = [{ name: 'Hub Central', href: '/' }]
-  
-  if (segments.length > 0) {
-    switch (segments[0]) {
-      case 'referencias':
-        breadcrumbs.push({ name: 'Estudio Creativo', href: '/referencias' })
-        break
-      case 'radar':
-        breadcrumbs.push({ name: 'Radar de Futuros', href: '/radar' })
-        break
-      case 'teambuilding':
-        breadcrumbs.push({ name: 'Team Building', href: '/teambuilding' })
-        break
-    }
-  }
-  
-  return breadcrumbs
-}
-
-function Navigation() {
+function Sidebar() {
   const pathname = usePathname()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  
-  return (
-    <>
-      {/* Header de Navegación */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-[#E55A2B] to-[#D4502A] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
-              <span className="text-xl font-semibold text-gray-900">LabnoLab</span>
-            </Link>
+  const [expandedSections, setExpandedSections] = useState<string[]>([])
 
-            {/* Navegación Desktop */}
-            <nav className="hidden md:flex space-x-1">
-              {navigation.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+  const toggleSection = (sectionName: string) => {
+    setExpandedSections(prev => 
+      prev.includes(sectionName) 
+        ? prev.filter(s => s !== sectionName)
+        : [...prev, sectionName]
+    )
+  }
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    return pathname.startsWith(href)
+  }
+
+  const isSectionExpanded = (sectionName: string) => {
+    return expandedSections.includes(sectionName) || 
+           navigation.find(nav => nav.name === sectionName)?.subsections.some(sub => pathname.startsWith(sub.href))
+  }
+
+  return (
+    <div className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 z-50 sidebar">
+      {/* Logo */}
+      <div className="p-6 border-b border-gray-200">
+        <Link href="/" className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-[#FF8A65] to-[#FFB74D] rounded-xl flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-lg">L</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">LabnoLab</h1>
+            <p className="text-xs text-gray-500">Hub Central</p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Navigation */}
+      <nav className="p-4 space-y-2">
+        {navigation.map((item) => {
+          const Icon = item.icon
+          const active = isActive(item.href)
+          const expanded = isSectionExpanded(item.name)
+          
+          return (
+            <div key={item.name} className="space-y-1">
+              <div className="flex items-center">
+                <Link
+                  href={item.href}
+                  className={`
+                    flex-1 flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                    ${active 
+                      ? 'bg-[#FF8A65] text-white shadow-sm' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.name}</span>
+                </Link>
                 
-                return (
-                  <div key={item.name} className="relative">
+                {item.subsections.length > 0 && (
+                  <button
+                    onClick={() => toggleSection(item.name)}
+                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                  >
+                    {expanded ? (
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-gray-500" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Subsections */}
+              {item.subsections.length > 0 && expanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-1"
+                >
+                  {item.subsections.map((sub) => (
                     <Link
-                      href={item.comingSoon ? '#' : item.href}
+                      key={sub.href}
+                      href={sub.href}
                       className={`
-                        px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2
-                        ${isActive 
-                          ? 'bg-[#E55A2B] text-white' 
-                          : item.comingSoon
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-700 hover:text-[#E55A2B] hover:bg-[#E55A2B]/5'
+                        block px-3 py-2 ml-8 text-sm rounded-lg transition-colors
+                        ${pathname === sub.href
+                          ? 'bg-[#FF8A65]/10 text-[#FF8A65] font-medium'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }
                       `}
-                      onClick={(e) => item.comingSoon && e.preventDefault()}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.name}</span>
-                      {item.comingSoon && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-1">
-                          Pronto
-                        </span>
-                      )}
+                      {sub.name}
                     </Link>
-                  </div>
-                )
-              })}
-            </nav>
-
-            {/* Botón menú móvil */}
-            <button
-              className="md:hidden p-2 rounded-lg text-gray-700 hover:text-[#E55A2B] hover:bg-[#E55A2B]/5"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Menú móvil */}
-        {mobileMenuOpen && (
-          <motion.div
-            className="md:hidden border-t border-gray-200 bg-white"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-          >
-            <div className="px-4 py-2 space-y-1">
-              {navigation.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-                
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.comingSoon ? '#' : item.href}
-                    className={`
-                      block px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center space-x-3
-                      ${isActive 
-                        ? 'bg-[#E55A2B] text-white' 
-                        : item.comingSoon
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-gray-700 hover:text-[#E55A2B] hover:bg-[#E55A2B]/5'
-                      }
-                    `}
-                    onClick={(e) => {
-                      if (item.comingSoon) e.preventDefault()
-                      setMobileMenuOpen(false)
-                    }}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.name}</span>
-                    {item.comingSoon && (
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-auto">
-                        Pronto
-                      </span>
-                    )}
-                  </Link>
-                )
-              })}
+                  ))}
+                </motion.div>
+              )}
             </div>
-          </motion.div>
-        )}
-      </header>
+          )
+        })}
+      </nav>
 
-      {/* Breadcrumbs */}
-      {pathname !== '/' && (
-        <div className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-2 py-3">
-              {getBreadcrumbs(pathname).map((breadcrumb, index, array) => (
-                <div key={breadcrumb.href} className="flex items-center space-x-2">
-                  <Link
-                    href={breadcrumb.href}
-                    className={`text-sm transition-colors ${
-                      index === array.length - 1
-                        ? 'text-[#E55A2B] font-medium'
-                        : 'text-gray-600 hover:text-[#E55A2B]'
-                    }`}
-                  >
-                    {breadcrumb.name}
-                  </Link>
-                  {index < array.length - 1 && (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  )}
-                </div>
-              ))}
+      {/* User Section */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+        <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+          <div className="w-8 h-8 bg-gradient-to-r from-[#FF8A65] to-[#FFB74D] rounded-full flex items-center justify-center">
+            <User className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-900">Usuario</p>
+            <p className="text-xs text-gray-500">Administrador</p>
+          </div>
+          <Settings className="w-4 h-4 text-gray-400" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Header() {
+  const pathname = usePathname()
+  
+  // Generar título basado en la ruta
+  const getPageTitle = () => {
+    if (pathname === '/') return 'Hub Central'
+    if (pathname.startsWith('/referencias')) return 'Estudio Creativo'
+    if (pathname.startsWith('/radar')) return 'Radar de Futuros'
+    if (pathname.startsWith('/teambuilding')) return 'Team Building'
+    if (pathname.startsWith('/poesia')) return 'Analizador de Poesía'
+    return 'LabnoLab'
+  }
+  
+  const getPageDescription = () => {
+    if (pathname === '/') return 'Bienvenido a tu espacio de trabajo creativo'
+    if (pathname.startsWith('/referencias')) return 'Gestiona tus referencias y proyectos creativos'
+    if (pathname.startsWith('/radar')) return 'Explora tendencias y futuros emergentes'
+    if (pathname.startsWith('/teambuilding')) return 'Fortalece equipos y dinámicas colaborativas'
+    if (pathname.startsWith('/poesia')) return 'Análisis lingüístico forense de textos poéticos'
+    return 'Plataforma integral para la creatividad y la innovación'
+  }
+
+  return (
+    <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <div className="px-8 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">{getPageTitle()}</h1>
+            <p className="text-sm text-gray-600 mt-1">{getPageDescription()}</p>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-gray-600">Todo funcionando</span>
             </div>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   )
 }
 
@@ -198,10 +245,15 @@ export default function RootLayout({
         <meta name="description" content="Plataforma integral para potenciar la creatividad, explorar futuros emergentes y fortalecer equipos de trabajo." />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
       >
-        <Navigation />
-        {children}
+        <Sidebar />
+        <div className="ml-64">
+          <Header />
+          <main className="main-content">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );

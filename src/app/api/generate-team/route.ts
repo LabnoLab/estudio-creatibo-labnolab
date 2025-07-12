@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getPrompt } from '../../../lib/prompts';
 
 // Inicializar cliente OpenAI
 const openai = new OpenAI({
@@ -53,10 +54,13 @@ export async function POST(request: NextRequest) {
     const lowestDimensions = getLowestDimensions(dimensions);
     console.log('📉 [TEAM API] Dimensiones más bajas identificadas:', lowestDimensions.map(d => `${d.label}: ${d.percentage}%`));
 
+    // Cargar prompt base del sistema desde JSON
+    const baseSystemPrompt = await getPrompt('teambuilding', 'analizar');
+    
     // Crear prompt del sistema para generar equipo
-    const systemPrompt = `Eres un experto en crear asistentes de IA especializados que complementen las carencias de un perfil creativo.
+    const systemPrompt = `${baseSystemPrompt}
 
-Tu tarea es crear 3 asistentes de IA personalizados que ayuden al usuario a fortalecer sus dimensiones más débiles.
+Tu tarea específica es crear 3 asistentes de IA personalizados que ayuden al usuario a fortalecer sus dimensiones más débiles.
 
 DIMENSIONES A COMPLEMENTAR:
 ${lowestDimensions.map((d, i) => `${i + 1}. ${d.label} (${d.percentage}%): ${getDimensionDescription(d.name)}`).join('\n')}
@@ -248,11 +252,11 @@ function getDimensionDescription(dimensionName: string): string {
     'detector_futuros': 'Identifica tendencias emergentes, anticipa cambios, busca oportunidades futuras y detecta señales débiles.',
     'diseñador_experiencias': 'Crea experiencias memorables, se enfoca en emociones, momentos mágicos y conexiones humanas profundas.',
     'constructor_comunidades': 'Construye redes, facilita colaboración, conecta personas, crea engagement y desarrolla comunidades.',
-    'transformador_cultural': 'Impulsa cambios culturales, desafía el status quo, evoluciona mentalidades y transforma hábitos organizacionales.',
-    'storyteller_natural': 'Comunica a través de narrativas poderosas, conecta emocionalmente, genera engagement usando el poder del storytelling.',
-    'experimentador_serial': 'Prueba constantemente, itera rápido, valida hipótesis, aprende haciendo y experimenta sistemáticamente.',
-    'conectador_mundos': 'Une disciplinas diferentes, encuentra intersecciones inesperadas, combina perspectivas diversas creando conexiones únicas.'
+    'transformador_cultural': 'Impulsa cambios organizacionales, crea nuevas narrativas, transforma mentalidades y culturas.',
+    'storyteller_natural': 'Comunica de forma compelling, crea narrativas poderosas, conecta emocionalmente con audiencias.',
+    'experimentador_serial': 'Prueba constantemente, hace prototipos rápidos, experimenta con nuevos enfoques y métodos.',
+    'conectador_mundos': 'Une diferentes industrias, disciplinas y perspectivas, encuentra sinergias entre mundos aparentemente distintos.'
   };
-
-  return descriptions[dimensionName] || 'Especialista en esta dimensión creativa específica.';
+  
+  return descriptions[dimensionName] || 'Dimensión especializada en el área correspondiente.';
 } 
