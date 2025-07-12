@@ -49,14 +49,14 @@ export default function Home() {
   }
 
   const cardVariants = {
-    hidden: { scale: 0.9, opacity: 0 },
+    hidden: { scale: 0.95, opacity: 0 },
     visible: {
       scale: 1,
       opacity: 1,
       transition: {
         type: "spring",
-        stiffness: 100,
-        delay: 0.2
+        stiffness: 80,
+        delay: 0.1
       }
     }
   }
@@ -66,7 +66,7 @@ export default function Home() {
       {/* Modal para ver imagen en grande */}
       {selectedImage && (
         <motion.div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -74,9 +74,9 @@ export default function Home() {
         >
           <motion.div
             className="relative max-w-4xl max-h-[90vh] w-full"
-            initial={{ scale: 0.8 }}
+            initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
-            exit={{ scale: 0.8 }}
+            exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -85,7 +85,7 @@ export default function Home() {
             >
               <X className="w-8 h-8" />
             </button>
-            <div className="relative aspect-auto rounded-2xl overflow-hidden shadow-2xl">
+            <div className="relative aspect-auto rounded-xl overflow-hidden shadow-2xl">
               <Image
                 src={`/uploads/referencias/${selectedImage}`}
                 alt={selectedImage}
@@ -103,18 +103,18 @@ export default function Home() {
         className="fixed left-0 top-0 bottom-0 w-16 bg-white/80 backdrop-blur-md border-r border-gray-200 z-50 flex flex-col items-center py-6"
         initial={{ x: -100 }}
         animate={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 100 }}
+        transition={{ type: "spring", stiffness: 80 }}
       >
         {/* Logo */}
-        <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center mb-8">
+        <div className="w-10 h-10 bg-[#E55A2B] rounded-lg flex items-center justify-center mb-8 shadow-sm">
           <Lightbulb className="w-6 h-6 text-white" />
         </div>
 
         {/* Navigation Icons */}
-        <nav className="flex flex-col space-y-4">
+        <nav className="flex flex-col space-y-3">
           <motion.button
-            className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white shadow-lg"
-            whileHover={{ scale: 1.1 }}
+            className="w-10 h-10 bg-[#E55A2B] rounded-lg flex items-center justify-center text-white shadow-sm"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Dashboard"
           >
@@ -122,8 +122,8 @@ export default function Home() {
           </motion.button>
           
           <motion.button
-            className="w-10 h-10 hover:bg-orange-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-orange-600 transition-colors"
-            whileHover={{ scale: 1.1 }}
+            className="w-10 h-10 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-[#E55A2B] transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Referencias"
           >
@@ -131,8 +131,8 @@ export default function Home() {
           </motion.button>
           
           <motion.button
-            className="w-10 h-10 hover:bg-orange-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-orange-600 transition-colors"
-            whileHover={{ scale: 1.1 }}
+            className="w-10 h-10 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-[#E55A2B] transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Prompts"
           >
@@ -140,8 +140,8 @@ export default function Home() {
           </motion.button>
           
           <motion.button
-            className="w-10 h-10 hover:bg-orange-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-orange-600 transition-colors"
-            whileHover={{ scale: 1.1 }}
+            className="w-10 h-10 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-[#E55A2B] transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Proyectos"
           >
@@ -151,8 +151,8 @@ export default function Home() {
 
         {/* Create Button */}
         <motion.button
-          className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center text-white shadow-lg mt-8"
-          whileHover={{ scale: 1.1 }}
+          className="w-10 h-10 bg-[#D4AF37] rounded-lg flex items-center justify-center text-white shadow-sm mt-8"
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           title="Crear"
         >
@@ -162,8 +162,8 @@ export default function Home() {
         {/* Bottom Settings */}
         <div className="mt-auto">
           <motion.button
-            className="w-10 h-10 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-orange-600 transition-colors"
-            whileHover={{ scale: 1.1 }}
+            className="w-10 h-10 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:text-[#E55A2B] transition-colors"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Configuración"
           >
@@ -179,13 +179,13 @@ export default function Home() {
           className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40"
           initial={{ y: -100 }}
           animate={{ y: 0 }}
-          transition={{ type: "spring", stiffness: 100 }}
+          transition={{ type: "spring", stiffness: 80 }}
         >
           <div className="px-8 py-4">
             <div className="flex items-center justify-between">
               {/* Title */}
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-medium text-[#E55A2B] tracking-tight">
                   Estudio Creativo LabnoLab
                 </h1>
               </div>
@@ -197,7 +197,7 @@ export default function Home() {
                   <input
                     type="text"
                     placeholder="Buscar..."
-                    className="bg-gray-100 border-0 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 w-64"
+                    className="bg-gray-100 border-0 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30 w-64"
                   />
                 </div>
               </div>
@@ -215,7 +215,7 @@ export default function Home() {
             animate="visible"
           >
             <motion.h2 
-              className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-800 via-orange-600 to-red-600 bg-clip-text text-transparent mb-4"
+              className="text-4xl sm:text-5xl font-medium text-gray-800 mb-4 tracking-tight"
               variants={itemVariants}
             >
               Tu Espacio Creativo Digital
@@ -237,21 +237,21 @@ export default function Home() {
           >
             {/* Referencias Visuales */}
             <motion.div 
-              className="bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
+              className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
               variants={cardVariants}
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -4, scale: 1.01 }}
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 bg-[#E55A2B] rounded-xl flex items-center justify-center shadow-sm">
                       <ImageIcon className="w-6 h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Referencias Visuales</h3>
+                    <h3 className="text-xl font-medium text-gray-800">Referencias Visuales</h3>
                   </div>
                   <motion.button 
-                    className="w-10 h-10 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-full flex items-center justify-center text-white hover:from-orange-600 hover:via-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg"
-                    whileHover={{ scale: 1.15, rotate: 90 }}
+                    className="w-10 h-10 bg-[#E55A2B] rounded-full flex items-center justify-center text-white hover:bg-[#D4502A] transition-all duration-200 shadow-sm"
+                    whileHover={{ scale: 1.1, rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
                   >
                     <Plus className="w-5 h-5" />
@@ -262,7 +262,7 @@ export default function Home() {
                 </p>
                 
                 {/* Grid uniforme de imágenes reales - sin espacios */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-0 mb-8 rounded-2xl overflow-hidden">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-0 mb-8 rounded-xl overflow-hidden">
                   {referencias.slice(0, 6).map((imagen, index) => (
                     <motion.div
                       key={imagen}
@@ -279,7 +279,7 @@ export default function Home() {
                         className="object-cover"
                         sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 33vw"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
                     </motion.div>
                   ))}
                 </div>
@@ -288,9 +288,9 @@ export default function Home() {
                   className="text-sm text-gray-500 font-medium flex items-center justify-center"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8 }}
+                  transition={{ delay: 0.6 }}
                 >
-                  <span className="bg-gradient-to-r from-orange-500 to-red-500 w-2 h-2 rounded-full mr-2"></span>
+                  <span className="bg-[#E55A2B] w-2 h-2 rounded-full mr-2"></span>
                   {referencias.length} imágenes guardadas
                 </motion.p>
               </div>
@@ -298,22 +298,22 @@ export default function Home() {
 
             {/* Biblioteca de Prompts */}
             <motion.div 
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
+              className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
               variants={cardVariants}
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -4, scale: 1.01 }}
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-[#8B7355] rounded-xl flex items-center justify-center shadow-sm">
                       <FileText className="w-6 h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Biblioteca de Prompts</h3>
+                    <h3 className="text-xl font-medium text-gray-800">Biblioteca de Prompts</h3>
                   </div>
                   <motion.button 
-                    className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="w-10 h-10 bg-[#8B7355] rounded-full flex items-center justify-center text-white hover:bg-[#7A6349] transition-all duration-200 shadow-sm"
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
                   >
                     <Plus className="w-5 h-5" />
                   </motion.button>
@@ -322,15 +322,15 @@ export default function Home() {
                   Guarda y organiza prompts efectivos para diferentes tipos de contenido
                 </p>
                 <div className="space-y-4 mb-6">
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-l-4 border-blue-500">
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-l-4 border-[#8B7355]">
                     <p className="text-sm font-medium text-gray-800">Diseño de Logo</p>
                     <p className="text-xs text-gray-600 mt-1">Crear logo minimalista y moderno...</p>
                   </div>
-                  <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border-l-4 border-orange-500">
+                  <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border-l-4 border-[#E55A2B]">
                     <p className="text-sm font-medium text-gray-800">Contenido Web</p>
                     <p className="text-xs text-gray-600 mt-1">Escribir copy persuasivo para...</p>
                   </div>
-                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-l-4 border-purple-500">
+                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-l-4 border-[#D4AF37]">
                     <p className="text-sm font-medium text-gray-800">Ilustración</p>
                     <p className="text-xs text-gray-600 mt-1">Generar ilustración estilo...</p>
                   </div>
@@ -341,22 +341,22 @@ export default function Home() {
 
             {/* Proyectos Creativos */}
             <motion.div 
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
+              className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
               variants={cardVariants}
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -4, scale: 1.01 }}
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-[#D4AF37] rounded-xl flex items-center justify-center shadow-sm">
                       <Lightbulb className="w-6 h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Proyectos Creativos</h3>
+                    <h3 className="text-xl font-medium text-gray-800">Proyectos Creativos</h3>
                   </div>
                   <motion.button 
-                    className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center text-white hover:bg-[#C49B2A] transition-all duration-200 shadow-sm"
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
                   >
                     <Plus className="w-5 h-5" />
                   </motion.button>
@@ -402,31 +402,31 @@ export default function Home() {
             animate="visible"
           >
             <motion.div 
-              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               variants={itemVariants}
             >
-              <div className="text-3xl font-bold text-orange-600 mb-2">{referencias.length}</div>
+              <div className="text-3xl font-medium text-[#E55A2B] mb-2">{referencias.length}</div>
               <div className="text-sm text-gray-600 font-medium">Referencias</div>
             </motion.div>
             <motion.div 
-              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               variants={itemVariants}
             >
-              <div className="text-3xl font-bold text-blue-600 mb-2">15</div>
+              <div className="text-3xl font-medium text-[#8B7355] mb-2">15</div>
               <div className="text-sm text-gray-600 font-medium">Prompts</div>
             </motion.div>
             <motion.div 
-              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               variants={itemVariants}
             >
-              <div className="text-3xl font-bold text-purple-600 mb-2">8</div>
+              <div className="text-3xl font-medium text-[#D4AF37] mb-2">8</div>
               <div className="text-sm text-gray-600 font-medium">Proyectos</div>
             </motion.div>
             <motion.div 
-              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               variants={itemVariants}
             >
-              <div className="text-3xl font-bold text-green-600 mb-2">42</div>
+              <div className="text-3xl font-medium text-[#8B7355] mb-2">42</div>
               <div className="text-sm text-gray-600 font-medium">Creaciones</div>
             </motion.div>
           </motion.div>
