@@ -1,9 +1,30 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon } from 'lucide-react'
+import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon, X } from 'lucide-react'
+import Image from 'next/image'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [referencias, setReferencias] = useState<string[]>([])
+
+  // Cargar imágenes dinámicamente
+  useEffect(() => {
+    const imageFiles = [
+      'animalitos-gorila.jpeg',
+      'animalitos-camaleon.jpeg',
+      'animalitos-foca.jpeg',
+      'animalitos-cocodrilo.jpeg',
+      'parches-marcas.jpeg',
+      'teclas-nike.jpeg',
+      'teclas-playstation.jpeg',
+      'teclas-twich.jpeg',
+      'teclas-mcdonalds.jpeg'
+    ]
+    setReferencias(imageFiles)
+  }, [])
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -42,6 +63,41 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
+      {/* Modal para ver imagen en grande */}
+      {selectedImage && (
+        <motion.div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setSelectedImage(null)}
+        >
+          <motion.div
+            className="relative max-w-4xl max-h-[90vh] w-full"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.8 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X className="w-8 h-8" />
+            </button>
+            <div className="relative aspect-auto rounded-2xl overflow-hidden shadow-2xl">
+              <Image
+                src={`/uploads/referencias/${selectedImage}`}
+                alt={selectedImage}
+                width={1200}
+                height={800}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Sidebar Navigation */}
       <motion.aside 
         className="fixed left-0 top-0 bottom-0 w-16 bg-white/80 backdrop-blur-md border-r border-gray-200 z-50 flex flex-col items-center py-6"
@@ -181,22 +237,22 @@ export default function Home() {
           >
             {/* Referencias Visuales */}
             <motion.div 
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
+              className="bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100"
               variants={cardVariants}
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -8, scale: 1.02 }}
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
                       <ImageIcon className="w-6 h-6 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-800">Referencias Visuales</h3>
                   </div>
                   <motion.button 
-                    className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="w-10 h-10 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-full flex items-center justify-center text-white hover:from-orange-600 hover:via-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg"
+                    whileHover={{ scale: 1.15, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
                   >
                     <Plus className="w-5 h-5" />
                   </motion.button>
@@ -204,15 +260,39 @@ export default function Home() {
                 <p className="text-gray-600 mb-8">
                   Colecciona y organiza imágenes inspiradoras para tus proyectos creativos
                 </p>
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="aspect-square bg-gradient-to-br from-orange-200 to-red-200 rounded-xl"></div>
-                  <div className="aspect-square bg-gradient-to-br from-blue-200 to-indigo-200 rounded-xl"></div>
-                  <div className="aspect-square bg-gradient-to-br from-purple-200 to-pink-200 rounded-xl"></div>
-                  <div className="aspect-square bg-gradient-to-br from-green-200 to-teal-200 rounded-xl"></div>
-                  <div className="aspect-square bg-gradient-to-br from-yellow-200 to-orange-200 rounded-xl"></div>
-                  <div className="aspect-square bg-gradient-to-br from-indigo-200 to-purple-200 rounded-xl"></div>
+                
+                {/* Grid uniforme de imágenes reales - sin espacios */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-0 mb-8 rounded-2xl overflow-hidden">
+                  {referencias.slice(0, 6).map((imagen, index) => (
+                    <motion.div
+                      key={imagen}
+                      className="relative aspect-square overflow-hidden cursor-pointer transition-all duration-300"
+                      whileHover={{ scale: 1.02, zIndex: 10 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedImage(imagen)}
+                      title={imagen.replace('.jpeg', '').replace(/-/g, ' ')}
+                    >
+                      <Image
+                        src={`/uploads/referencias/${imagen}`}
+                        alt={imagen}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                    </motion.div>
+                  ))}
                 </div>
-                <p className="text-sm text-gray-500 font-medium">12 imágenes guardadas</p>
+                
+                <motion.p 
+                  className="text-sm text-gray-500 font-medium flex items-center justify-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <span className="bg-gradient-to-r from-orange-500 to-red-500 w-2 h-2 rounded-full mr-2"></span>
+                  {referencias.length} imágenes guardadas
+                </motion.p>
               </div>
             </motion.div>
 
@@ -325,7 +405,7 @@ export default function Home() {
               className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
               variants={itemVariants}
             >
-              <div className="text-3xl font-bold text-orange-600 mb-2">23</div>
+              <div className="text-3xl font-bold text-orange-600 mb-2">{referencias.length}</div>
               <div className="text-sm text-gray-600 font-medium">Referencias</div>
             </motion.div>
             <motion.div 
