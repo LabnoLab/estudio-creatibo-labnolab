@@ -1,9 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon, X, Copy, Edit2, Check } from 'lucide-react'
+import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon, X, Copy, Edit2, Check, Upload, Save } from 'lucide-react'
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 
 export default function Home() {
@@ -16,6 +16,18 @@ export default function Home() {
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
   const [isEditingPromptName, setIsEditingPromptName] = useState(false)
   const [copied, setCopied] = useState(false)
+  
+  // Estados para Drag & Drop
+  const [isDragging, setIsDragging] = useState(false)
+  const [showUploadConfig, setShowUploadConfig] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadPreview, setUploadPreview] = useState<string>('')
+  const [uploadTitle, setUploadTitle] = useState('')
+  const [uploadPrompt, setUploadPrompt] = useState('')
+  const [uploadPromptName, setUploadPromptName] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  
+  const dropZoneRef = useRef<HTMLDivElement>(null)
 
   // Cargar imágenes dinámicamente
   useEffect(() => {
@@ -53,6 +65,100 @@ export default function Home() {
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Error copying text: ', err)
+    }
+  }
+
+  // Drag & Drop Event Handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    const imageFile = files.find(file => file.type.startsWith('image/'))
+    
+    if (imageFile) {
+      setUploadFile(imageFile)
+      
+      // Crear preview
+      const reader = new FileReader()
+      reader.onload = () => {
+        setUploadPreview(reader.result as string)
+      }
+      reader.readAsDataURL(imageFile)
+      
+      // Configurar valores por defecto
+      const fileName = imageFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      setUploadTitle(fileName)
+      setUploadPrompt(`Create a professional digital artwork featuring ${fileName} with modern design elements, clean composition, and attention to detail. Use contemporary color palette and sophisticated typography.`)
+      setUploadPromptName(`Prompt para ${fileName}`)
+      
+      setShowUploadConfig(true)
+    }
+  }
+
+  // Función para cancelar upload
+  const cancelUpload = () => {
+    setShowUploadConfig(false)
+    setUploadFile(null)
+    setUploadPreview('')
+    setUploadTitle('')
+    setUploadPrompt('')
+    setUploadPromptName('')
+  }
+
+  // Función para guardar imagen
+  const saveUploadedImage = async () => {
+    if (!uploadFile) return
+    
+    setIsUploading(true)
+    
+    try {
+      // Simular upload (en una app real, aquí enviarías a tu API)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Generar nombre único para el archivo
+      const timestamp = Date.now()
+      const fileExtension = uploadFile.name.split('.').pop()
+      const newFileName = `upload-${timestamp}.${fileExtension}`
+      
+      // Agregar a la lista de referencias
+      setReferencias(prev => [newFileName, ...prev])
+      
+      // Cerrar modal de configuración
+      setShowUploadConfig(false)
+      setUploadFile(null)
+      setUploadPreview('')
+      setUploadTitle('')
+      setUploadPrompt('')
+      setUploadPromptName('')
+      
+      // Mostrar feedback de éxito (opcional)
+      console.log('Imagen subida exitosamente:', newFileName)
+      
+    } catch (error) {
+      console.error('Error uploading image:', error)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -264,6 +370,115 @@ export default function Home() {
         </Dialog.Portal>
       </Dialog.Root>
 
+      {/* Modal de Configuración de Upload */}
+      <Dialog.Root open={showUploadConfig} onOpenChange={setShowUploadConfig}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50" />
+          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="bg-[#2a2a2a] rounded-2xl shadow-2xl border border-[#404040] w-full max-w-2xl max-h-[90vh] overflow-hidden"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-[#404040]">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-medium text-[#f8f8f8]">Configurar Nueva Referencia</h2>
+                  <button
+                    onClick={cancelUpload}
+                    className="w-8 h-8 rounded-lg bg-[#404040] hover:bg-[#4a4a4a] flex items-center justify-center text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                {/* Preview de la Imagen */}
+                {uploadPreview && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[#a0a0a0]">Preview</label>
+                    <div className="relative w-full h-48 bg-[#1e1e1e] rounded-xl overflow-hidden">
+                      <Image
+                        src={uploadPreview}
+                        alt="Upload preview"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Nombre de la Imagen */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#a0a0a0]">Nombre de la imagen</label>
+                  <input
+                    type="text"
+                    value={uploadTitle}
+                    onChange={(e) => setUploadTitle(e.target.value)}
+                    className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
+                    placeholder="Ingresa el nombre de la imagen..."
+                  />
+                </div>
+
+                {/* Nombre del Prompt */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#a0a0a0]">Nombre del prompt</label>
+                  <input
+                    type="text"
+                    value={uploadPromptName}
+                    onChange={(e) => setUploadPromptName(e.target.value)}
+                    className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
+                    placeholder="Ingresa el nombre del prompt..."
+                  />
+                </div>
+
+                {/* Prompt Completo */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#a0a0a0]">Prompt completo</label>
+                  <textarea
+                    value={uploadPrompt}
+                    onChange={(e) => setUploadPrompt(e.target.value)}
+                    className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30 resize-none"
+                    rows={4}
+                    placeholder="Describe el prompt para esta imagen..."
+                  />
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="p-6 border-t border-[#404040] flex space-x-3">
+                <button
+                  onClick={cancelUpload}
+                  className="flex-1 bg-[#404040] hover:bg-[#4a4a4a] text-[#f8f8f8] py-3 px-4 rounded-lg font-medium transition-colors"
+                  disabled={isUploading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveUploadedImage}
+                  disabled={isUploading || !uploadTitle.trim()}
+                  className="flex-1 bg-[#E55A2B] hover:bg-[#D4502A] disabled:bg-[#6a6a6a] disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      <span>Guardar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       {/* Sidebar Navigation */}
       <motion.aside 
         className="fixed left-0 top-0 bottom-0 w-16 bg-white/80 backdrop-blur-md border-r border-gray-200 z-50 flex flex-col items-center py-6"
@@ -401,7 +616,7 @@ export default function Home() {
             initial="hidden"
             animate="visible"
           >
-            {/* Referencias Visuales */}
+            {/* Referencias Visuales con Drag & Drop */}
             <motion.div 
               className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
               variants={cardVariants}
@@ -427,27 +642,54 @@ export default function Home() {
                   Colecciona y organiza imágenes inspiradoras para tus proyectos creativos
                 </p>
                 
-                {/* Grid uniforme de imágenes reales - sin espacios */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-0 mb-8 rounded-xl overflow-hidden">
-                  {referencias.slice(0, 6).map((imagen, index) => (
-                    <motion.div
-                      key={imagen}
-                      className="relative aspect-square overflow-hidden cursor-pointer transition-all duration-300"
-                      whileHover={{ scale: 1.02, zIndex: 10 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => openImageModal(imagen)}
-                      title={imagen.replace('.jpeg', '').replace(/-/g, ' ')}
-                    >
-                      <Image
-                        src={`/uploads/referencias/${imagen}`}
-                        alt={imagen}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 33vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                    </motion.div>
-                  ))}
+                {/* Zona de Drag & Drop */}
+                <div
+                  ref={dropZoneRef}
+                  className={`relative mb-8 rounded-xl overflow-hidden transition-all duration-300 ${
+                    isDragging 
+                      ? 'border-2 border-dashed border-[#E55A2B] bg-[#E55A2B]/5' 
+                      : ''
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  {isDragging && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#E55A2B]/10 backdrop-blur-sm">
+                      <div className="text-center p-6">
+                        <Upload className="w-12 h-12 text-[#E55A2B] mx-auto mb-3" />
+                        <p className="text-[#E55A2B] font-medium text-lg mb-1">¡Suelta la imagen aquí!</p>
+                        <p className="text-gray-600 text-sm">Se abrirá la configuración automáticamente</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Grid uniforme de imágenes reales - sin espacios */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-0 rounded-xl overflow-hidden">
+                    {referencias.slice(0, 6).map((imagen, index) => (
+                      <motion.div
+                        key={imagen}
+                        className="relative aspect-square overflow-hidden cursor-pointer transition-all duration-300"
+                        whileHover={{ scale: 1.02, zIndex: 10 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => openImageModal(imagen)}
+                        title={imagen.replace('.jpeg', '').replace(/-/g, ' ')}
+                      >
+                        <Image
+                          src={imagen.startsWith('upload-') 
+                            ? uploadPreview || `/uploads/referencias/${imagen}` 
+                            : `/uploads/referencias/${imagen}`
+                          }
+                          alt={imagen}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 33vw"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
                 
                 <motion.p 
