@@ -1,13 +1,21 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon, X } from 'lucide-react'
+import { Plus, Image as ImageIcon, FileText, Lightbulb, Search, Settings, Folder, Home as HomeIcon, X, Copy, Edit2, Check } from 'lucide-react'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [referencias, setReferencias] = useState<string[]>([])
+  const [imageTitle, setImageTitle] = useState('')
+  const [imagePrompt, setImagePrompt] = useState('')
+  const [promptName, setPromptName] = useState('')
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false)
+  const [isEditingPromptName, setIsEditingPromptName] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   // Cargar imágenes dinámicamente
   useEffect(() => {
@@ -24,6 +32,29 @@ export default function Home() {
     ]
     setReferencias(imageFiles)
   }, [])
+
+  // Función para abrir modal con datos de la imagen
+  const openImageModal = (imageName: string) => {
+    setSelectedImage(imageName)
+    setImageTitle(imageName.replace('.jpeg', '').replace(/-/g, ' '))
+    setImagePrompt(`Create a professional digital artwork featuring ${imageName.replace('.jpeg', '').replace(/-/g, ' ')} with modern design elements, clean composition, and attention to detail. Use contemporary color palette and sophisticated typography.`)
+    setPromptName(`Prompt para ${imageName.replace('.jpeg', '').replace(/-/g, ' ')}`)
+    setIsEditingTitle(false)
+    setIsEditingPrompt(false)
+    setIsEditingPromptName(false)
+    setCopied(false)
+  }
+
+  // Función para copiar prompt
+  const copyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(imagePrompt)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Error copying text: ', err)
+    }
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -63,40 +94,175 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
-      {/* Modal para ver imagen en grande */}
-      {selectedImage && (
-        <motion.div
-          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => setSelectedImage(null)}
-        >
-          <motion.div
-            className="relative max-w-4xl max-h-[90vh] w-full"
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.9 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
-            >
-              <X className="w-8 h-8" />
-            </button>
-            <div className="relative aspect-auto rounded-xl overflow-hidden shadow-2xl">
-              <Image
-                src={`/uploads/referencias/${selectedImage}`}
-                alt={selectedImage}
-                width={1200}
-                height={800}
-                className="w-full h-full object-contain"
-              />
+      {/* Modal Épico para Referencias */}
+      <Dialog.Root open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 animate-in fade-in-0" />
+          <Dialog.Content className="fixed inset-0 z-50 overflow-hidden">
+            <div className="h-full flex">
+              {/* Imagen Grande - Lado Izquierdo */}
+              <div className="flex-1 flex items-center justify-center p-8 bg-[#1a1a1a]">
+                <div className="relative w-full h-full max-w-4xl max-h-[90vh]">
+                  {selectedImage && (
+                    <Image
+                      src={`/uploads/referencias/${selectedImage}`}
+                      alt={imageTitle}
+                      fill
+                      className="object-contain rounded-xl shadow-2xl"
+                      priority
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Panel de Metadatos - Lado Derecho */}
+              <div className="w-96 bg-[#2a2a2a] border-l border-[#404040] flex flex-col">
+                {/* Header del Panel */}
+                <div className="p-6 border-b border-[#404040]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-[#f8f8f8]">Detalles de Referencia</h2>
+                    <Dialog.Close asChild>
+                      <button className="w-8 h-8 rounded-lg bg-[#404040] hover:bg-[#4a4a4a] flex items-center justify-center text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </Dialog.Close>
+                  </div>
+                  
+                  {/* Título de la Imagen */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[#a0a0a0]">Nombre de la imagen</label>
+                    {isEditingTitle ? (
+                      <input
+                        type="text"
+                        value={imageTitle}
+                        onChange={(e) => setImageTitle(e.target.value)}
+                        onBlur={() => setIsEditingTitle(false)}
+                        onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
+                        className="w-full p-2 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[#f8f8f8] font-medium">{imageTitle}</span>
+                        <button
+                          onClick={() => setIsEditingTitle(true)}
+                          className="p-1 rounded hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contenido del Panel */}
+                <div className="flex-1 p-6 space-y-6">
+                  {/* Nombre del Prompt */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[#a0a0a0]">Nombre del prompt</label>
+                    {isEditingPromptName ? (
+                      <input
+                        type="text"
+                        value={promptName}
+                        onChange={(e) => setPromptName(e.target.value)}
+                        onBlur={() => setIsEditingPromptName(false)}
+                        onKeyDown={(e) => e.key === 'Enter' && setIsEditingPromptName(false)}
+                        className="w-full p-2 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[#f8f8f8] font-medium">{promptName}</span>
+                        <button
+                          onClick={() => setIsEditingPromptName(true)}
+                          className="p-1 rounded hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Prompt Completo */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-[#a0a0a0]">Prompt completo</label>
+                    {isEditingPrompt ? (
+                      <textarea
+                        value={imagePrompt}
+                        onChange={(e) => setImagePrompt(e.target.value)}
+                        onBlur={() => setIsEditingPrompt(false)}
+                        className="w-full p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-[#E55A2B]/30 resize-none"
+                        rows={6}
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="relative">
+                        <div className="p-3 bg-[#1e1e1e] border border-[#404040] rounded-lg text-[#f8f8f8] text-sm leading-relaxed min-h-[120px]">
+                          {imagePrompt}
+                        </div>
+                        <button
+                          onClick={() => setIsEditingPrompt(true)}
+                          className="absolute top-2 right-2 p-1 rounded hover:bg-[#404040] text-[#a0a0a0] hover:text-[#f8f8f8] transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Metadatos Adicionales */}
+                  <div className="space-y-3 pt-2 border-t border-[#404040]">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#a0a0a0]">Agregado:</span>
+                      <span className="text-sm text-[#f8f8f8]">Hoy</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#a0a0a0]">Categoría:</span>
+                      <span className="text-sm text-[#f8f8f8]">Referencia</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#a0a0a0]">Uso:</span>
+                      <span className="text-sm text-[#f8f8f8]">0 proyectos</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="p-6 border-t border-[#404040] space-y-3">
+                  <button
+                    onClick={copyPrompt}
+                    className="w-full bg-[#E55A2B] hover:bg-[#D4502A] text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors shadow-sm"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        <span>¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-5 h-5" />
+                        <span>Copiar Prompt</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  <div className="flex space-x-3">
+                    <button className="flex-1 bg-[#404040] hover:bg-[#4a4a4a] text-[#f8f8f8] py-2 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                      <span>Editar</span>
+                    </button>
+                    <Dialog.Close asChild>
+                      <button className="flex-1 bg-[#2a2a2a] hover:bg-[#333333] text-[#a0a0a0] border border-[#404040] py-2 px-4 rounded-lg font-medium transition-colors">
+                        Cerrar
+                      </button>
+                    </Dialog.Close>
+                  </div>
+                </div>
+              </div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* Sidebar Navigation */}
       <motion.aside 
@@ -269,7 +435,7 @@ export default function Home() {
                       className="relative aspect-square overflow-hidden cursor-pointer transition-all duration-300"
                       whileHover={{ scale: 1.02, zIndex: 10 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedImage(imagen)}
+                      onClick={() => openImageModal(imagen)}
                       title={imagen.replace('.jpeg', '').replace(/-/g, ' ')}
                     >
                       <Image
